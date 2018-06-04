@@ -109,6 +109,7 @@
     <Compile Include="Helper\ConfigHelper.cs" />
     <Compile Include="Helper\Extensions.cs" />
     <Compile Include="OA\Business.cs" />
+    <Compile Include="OA\TMessage.cs" />
     <Compile Include="ViewModel\LoginViewModel.cs" />
     <Compile Include="ViewModel\ViewModelLocator.cs" />
     <Compile Include="View\LoginWindow.xaml.cs">

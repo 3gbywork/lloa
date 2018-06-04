@@ -1,5 +1,6 @@
 ﻿using GalaSoft.MvvmLight;
 using GalaSoft.MvvmLight.Command;
+using GalaSoft.MvvmLight.Messaging;
 using OfficeAutomationClient.Helper;
 using OfficeAutomationClient.OA;
 using System;
@@ -22,15 +23,13 @@ namespace OfficeAutomationClient.ViewModel
         public string Title => "登录";
 
         public List<string> Users { get => _users; set => Set(nameof(Users), ref _users, value); }
-        public string User { get => _user; set => Set(nameof(User), ref _user, value); }
-        public string NewUser
+        public string User
         {
+            get => _user;
             set
             {
-                if (!string.IsNullOrEmpty(User)) return;
-                if (string.IsNullOrEmpty(value)) return;
-                Users.Add(value);
-                User = value;
+                Set(nameof(User), ref _user, value);
+                Messenger.Default.Send(value, TMessage.UserChanged);
             }
         }
         public string ValidateCode { get => _validateCode; set => Set(nameof(ValidateCode), ref _validateCode, value); }

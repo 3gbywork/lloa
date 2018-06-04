@@ -60,7 +60,7 @@
         </Grid.ColumnDefinitions>
 
         <Label Content="用户名：" Grid.Row="0" Grid.Column="0"/>
-        <ComboBox ItemsSource="{Binding Users}" SelectedItem="{Binding User}" Text="{Binding NewUser, UpdateSourceTrigger=LostFocus}" LostFocus="ComboBox_LostFocus" IsEditable="True" Grid.Row="0" Grid.Column="1" VerticalContentAlignment="Center"/>
+        <ComboBox ItemsSource="{Binding Users}" Text="{Binding User, UpdateSourceTrigger=PropertyChanged}" IsEditable="True" Grid.Row="0" Grid.Column="1" VerticalContentAlignment="Center"/>
         <Separator Grid.Row="0" Grid.ColumnSpan="2"/>
 
         <Label Content="密　码：" Grid.Row="1" Grid.Column="0"/>

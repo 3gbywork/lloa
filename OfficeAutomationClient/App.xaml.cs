@@ -1,10 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Configuration;
-using System.Data;
-using System.Linq;
+﻿using OfficeAutomationClient.OA;
 using System.Windows;
-using ValidateCodeProcessor;
 
 namespace OfficeAutomationClient
 {
@@ -16,7 +11,7 @@ namespace OfficeAutomationClient
         protected override void OnExit(ExitEventArgs e)
         {
             NLog.LogManager.Shutdown();
-            OcrProcessor.Instance.Dispose();
+            Business.Instance.Dispose();
 
             base.OnExit(e);
         }

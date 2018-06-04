@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
 using System.Runtime.InteropServices;
+using System.Security;
 using System.Text;
 using System.Windows;
 using System.Windows.Interop;
@@ -25,6 +26,29 @@ namespace OfficeAutomationClient.Helper
                 return Imaging.CreateBitmapSourceFromHBitmap(handle, IntPtr.Zero, Int32Rect.Empty, BitmapSizeOptions.FromEmptyOptions());
             }
             finally { DeleteObject(handle); }
+        }
+
+        public static string Text(this SecureString secureString)
+        {
+            IntPtr intPtr = IntPtr.Zero;
+            if (secureString == null || secureString.Length == 0)
+            {
+                return string.Empty;
+            }
+            string result;
+            try
+            {
+                intPtr = Marshal.SecureStringToBSTR(secureString);
+                result = Marshal.PtrToStringBSTR(intPtr);
+            }
+            finally
+            {
+                if (intPtr != IntPtr.Zero)
+                {
+                    Marshal.ZeroFreeBSTR(intPtr);
+                }
+            }
+            return result;
         }
     }
 }

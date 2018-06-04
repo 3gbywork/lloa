@@ -1,4 +1,6 @@
-﻿using System;
+﻿using OfficeAutomationClient.Helper;
+using OfficeAutomationClient.OA;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -21,6 +23,14 @@ namespace OfficeAutomationClient.View
         public LoginWindow()
         {
             InitializeComponent();
+        }
+
+        private void ComboBox_LostFocus(object sender, RoutedEventArgs e)
+        {
+            var combobox = sender as ComboBox;
+            if (null != combobox && !string.IsNullOrEmpty(combobox.Text))
+                password.Password = Business.Instance.QueryPassword(combobox.Text).Text();
+            else password.Password = string.Empty;
         }
     }
 }

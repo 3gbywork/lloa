@@ -14,6 +14,7 @@ namespace OfficeAutomationClient.OA
 
         public const string ValidateCode = Home + "/weaver/weaver.file.MakeValidateCode";
 
+        public const string MonthAttDetail = Home + "/hrm/report/schedulediff/HrmScheduleDiffMonthAttDetail.jsp?fromHrmTab=1";
         public const string MonthAttData = Home + "/hrm/report/schedulediff/HrmScheduleDiffMonthAttData.jsp";
     }
 }

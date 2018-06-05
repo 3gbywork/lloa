@@ -86,6 +86,8 @@ namespace OfficeAutomationClient.OA
 
         internal void GetAttendance(string date)
         {
+            var resp = WebRequestHelper.Create(OAUrl.MonthAttDetail).WithCookies(cookieContainer).GetResponseString();
+
             var attparameters = new Dictionary<string, string>
             {
                 {"currentdate", date },
@@ -94,7 +96,7 @@ namespace OfficeAutomationClient.OA
                 {"rstr", "aYrGbZH3JE" },
                 {"subCompanyId", "1" },
             };
-            var resp = WebRequestHelper.Create(OAUrl.MonthAttData).WithCookies(cookieContainer).WithParamters(attparameters).GetResponseString();
+            var attdata = WebRequestHelper.Create(OAUrl.MonthAttData).WithCookies(cookieContainer).WithParamters(attparameters).GetResponseString();
         }
 
         internal List<string> GetUsers()

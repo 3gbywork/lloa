@@ -93,7 +93,7 @@ namespace OfficeAutomationClient.OA
                 {"currentdate", date },
                 {"resourceId", "1209" },
                 {"departmentId", "86" },
-                {"rstr", "aYrGbZH3JE" },
+                {"rstr",RandomHelper.RandomString(10) },
                 {"subCompanyId", "1" },
             };
             var attdata = WebRequestHelper.Create(OAUrl.MonthAttData).WithCookies(cookieContainer).WithParamters(attparameters).GetResponseString();

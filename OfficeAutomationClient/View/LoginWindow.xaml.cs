@@ -1,4 +1,6 @@
-﻿using OfficeAutomationClient.Helper;
+﻿using GalaSoft.MvvmLight.Messaging;
+using GalaSoft.MvvmLight.Threading;
+using OfficeAutomationClient.Helper;
 using OfficeAutomationClient.OA;
 using System;
 using System.Collections.Generic;
@@ -20,17 +22,39 @@ namespace OfficeAutomationClient.View
     /// </summary>
     public partial class LoginWindow : Window
     {
+        private List<string> users = new List<string>();
+
         public LoginWindow()
         {
+            this.Loaded += delegate
+            {
+                var user = users.Last();
+                GetPassword(user);
+            };
+
+            Messenger.Default.Register<string>(this, TMessage.UserChanged, (user) =>
+             {
+                 if (IsLoaded)
+                 {
+                     GetPassword(user);
+                 }
+                 else
+                 {
+                     users.Add(user);
+                 }
+             });
+
             InitializeComponent();
         }
 
-        private void ComboBox_LostFocus(object sender, RoutedEventArgs e)
+        private void GetPassword(string user)
         {
-            var combobox = sender as ComboBox;
-            if (null != combobox && !string.IsNullOrEmpty(combobox.Text))
-                password.Password = Business.Instance.QueryPassword(combobox.Text).Text();
-            else password.Password = string.Empty;
+            DispatcherHelper.CheckBeginInvokeOnUI(() =>
+            {
+                if (!string.IsNullOrEmpty(user))
+                    password.Password = Business.Instance.QueryPassword(user).Text();
+                else password.Password = string.Empty;
+            });
         }
     }
 }

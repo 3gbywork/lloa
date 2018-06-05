@@ -1,4 +1,5 @@
-﻿using OfficeAutomationClient.OA;
+﻿using GalaSoft.MvvmLight.Threading;
+using OfficeAutomationClient.OA;
 using System.Windows;
 
 namespace OfficeAutomationClient
@@ -8,6 +9,13 @@ namespace OfficeAutomationClient
     /// </summary>
     public partial class App : Application
     {
+        protected override void OnStartup(StartupEventArgs e)
+        {
+            base.OnStartup(e);
+
+            DispatcherHelper.Initialize();
+        }
+
         protected override void OnExit(ExitEventArgs e)
         {
             NLog.LogManager.Shutdown();

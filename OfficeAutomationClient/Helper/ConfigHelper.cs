@@ -11,13 +11,13 @@ namespace OfficeAutomationClient.Helper
     {
         private static ILogger logger = LogHelper.GetLogger<ConfigHelper>();
 
+        private static Configuration configuration = ConfigurationManager.OpenExeConfiguration(ConfigurationUserLevel.None);
+
         public static string GetString(string key)
         {
             try
             {
-                var values = ConfigurationManager.AppSettings.GetValues(key);
-                if (values.Count() > 0) return values[0];
-                return string.Empty;
+                return configuration.AppSettings.Settings[key].Value;
             }
             catch (Exception ex)
             {
@@ -40,7 +40,9 @@ namespace OfficeAutomationClient.Helper
         {
             try
             {
-                ConfigurationManager.AppSettings.Set(key, value);
+                configuration.AppSettings.Settings.Remove(key);
+                configuration.AppSettings.Settings.Add(key, value);
+                configuration.Save();
             }
             catch (Exception ex)
             {

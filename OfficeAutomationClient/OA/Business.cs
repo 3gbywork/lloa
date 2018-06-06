@@ -71,10 +71,10 @@ namespace OfficeAutomationClient.OA
 
             if (login.RememberPwd)
             {
+                var credential = new Credential(login.User, password.Text(), CredentialSetTarget, CredentialType.Generic);
+                credential.Save();
                 if (!credentials.Exists(c => c.Username.Equals(login.User)))
                 {
-                    var credential = new Credential(login.User, password.Text(), CredentialSetTarget, CredentialType.Generic);
-                    credential.Save();
                     credentials.Add(credential);
                 }
 

@@ -1,22 +1,21 @@
-﻿using NLog;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
+﻿using CommonUtility.Logging;
 
 namespace OfficeAutomationClient.Helper
 {
     public class LogHelper
     {
-        public static void Config()
-        {
+        private static LogFactory logFactory;
 
+        static LogHelper()
+        {
+            logFactory = new LogFactory();
+            logFactory.AddProvider(NLogProvider.Instance);
         }
 
         public static ILogger GetLogger<T>()
         {
             var type = typeof(T);
-            return LogManager.GetLogger(type.FullName);
+            return logFactory.CreateLogger(type.FullName);
         }
     }
 }

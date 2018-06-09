@@ -1,4 +1,5 @@
-﻿using GalaSoft.MvvmLight;
+﻿using CommonUtility.Logging;
+using GalaSoft.MvvmLight;
 using GalaSoft.MvvmLight.Command;
 using GalaSoft.MvvmLight.Messaging;
 using OfficeAutomationClient.Helper;
@@ -13,6 +14,8 @@ namespace OfficeAutomationClient.ViewModel
 {
     public class LoginViewModel : ViewModelBase
     {
+        private static ILogger logger = LogHelper.GetLogger<LoginViewModel>();
+
         private List<string> _users;
         private string _user;
         private string _validateCode;
@@ -51,6 +54,7 @@ namespace OfficeAutomationClient.ViewModel
 
         public LoginViewModel()
         {
+            logger.Info("初始化账号");
             Users = Business.Instance.GetUsers();
             ValidateCodeImage = Business.Instance.GetValidateCodeImage();
 

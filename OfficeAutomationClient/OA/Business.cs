@@ -32,6 +32,8 @@ namespace OfficeAutomationClient.OA
         private string validateCode;
         private CredentialSet credentials;
 
+        private string userId;
+
         internal ImageSource GetValidateCodeImage()
         {
             var bitmap = WebRequestHelper.Create(OAUrl.ValidateCode).WithCookies(cookieContainer).GetResponseStream().ToBitmap();
@@ -52,7 +54,7 @@ namespace OfficeAutomationClient.OA
             OcrProcessor.Instance.Dispose();
         }
 
-        internal void Login(LoginViewModel login, SecureString password)
+        internal bool Login(LoginViewModel login, SecureString password)
         {
             var loginparameters = new Dictionary<string, string>
             {
@@ -69,6 +71,10 @@ namespace OfficeAutomationClient.OA
             };
             var resp = WebRequestHelper.Create(OAUrl.VerifyLogin).WithCookies(cookieContainer).WithParamters(loginparameters).GetResponseString();
 
+            if (!resp.Contains("logincookiecheck")) return false;
+
+            userId = cookieContainer.GetCookies(new Uri(OAUrl.Home))["loginidweaver"].Value;
+
             if (login.RememberPwd)
             {
                 var credential = new Credential(login.User, password.Text(), CredentialSetTarget, CredentialType.Generic);
@@ -82,6 +88,8 @@ namespace OfficeAutomationClient.OA
                 ConfigHelper.Save(ConfigKey.RememberPwd, login.RememberPwd.ToString());
                 ConfigHelper.Save(ConfigKey.AutoLogin, login.AutoLogin.ToString());
             }
+
+            return true;
         }
 
         internal void GetAttendance(string date)

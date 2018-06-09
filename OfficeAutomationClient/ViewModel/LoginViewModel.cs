@@ -64,7 +64,15 @@ namespace OfficeAutomationClient.ViewModel
             });
             LoginCommand = new RelayCommand<PasswordBox>((p) =>
             {
-                Business.Instance.Login(this, p.SecurePassword);
+                if (Business.Instance.Login(this, p.SecurePassword))
+                {
+                    Messenger.Default.Send(WindowType.Login, TMessage.CloseWindow);
+                    Messenger.Default.Send(WindowType.Content, TMessage.CreateWindow);
+                }
+                else
+                {
+                    ValidateCodeImage = Business.Instance.GetValidateCodeImage();
+                }
 
                 //Business.Instance.GetAttendance(DateTime.Now.ToString("yyyy-MM-dd"));
             });

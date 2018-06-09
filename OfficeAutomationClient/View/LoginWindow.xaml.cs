@@ -44,6 +44,14 @@ namespace OfficeAutomationClient.View
                  }
              });
 
+            Messenger.Default.Register<WindowType>(this, TMessage.CloseWindow, (type) =>
+            {
+                if (type == WindowType.Login)
+                {
+                    Close();
+                }
+            });
+
             InitializeComponent();
         }
 

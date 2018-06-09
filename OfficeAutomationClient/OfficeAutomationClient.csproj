@@ -123,6 +123,9 @@
     <Compile Include="OA\TMessage.cs" />
     <Compile Include="ViewModel\LoginViewModel.cs" />
     <Compile Include="ViewModel\ViewModelLocator.cs" />
+    <Compile Include="View\ContentWindow.xaml.cs">
+      <DependentUpon>ContentWindow.xaml</DependentUpon>
+    </Compile>
     <Compile Include="View\LoginWindow.xaml.cs">
       <DependentUpon>LoginWindow.xaml</DependentUpon>
     </Compile>
@@ -132,6 +135,9 @@
     </Compile>
     <Compile Include="Helper\LogHelper.cs" />
     <Compile Include="Helper\WebRequestHelper.cs" />
+    <Page Include="View\ContentWindow.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
     <Page Include="View\LoginWindow.xaml">
       <Generator>MSBuild:Compile</Generator>
     </Page>

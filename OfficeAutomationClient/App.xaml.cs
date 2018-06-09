@@ -1,5 +1,6 @@
 ﻿using GalaSoft.MvvmLight.Threading;
 using OfficeAutomationClient.OA;
+using OfficeAutomationClient.View;
 using System.Windows;
 
 namespace OfficeAutomationClient
@@ -14,11 +15,18 @@ namespace OfficeAutomationClient
             base.OnStartup(e);
 
             DispatcherHelper.Initialize();
+
+            var login = new LoginWindow();
+            var rst = login.ShowDialog();
+            if (rst.HasValue && rst.Value)
+            {
+                new InfoWindow().Show();
+            }
+
         }
 
         protected override void OnExit(ExitEventArgs e)
         {
-            NLog.LogManager.Shutdown();
             Business.Instance.Dispose();
 
             base.OnExit(e);

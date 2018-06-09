@@ -1,4 +1,7 @@
-﻿using CredentialManagement;
+﻿using CommonUtility.Extension;
+using CommonUtility.Http;
+using CommonUtility.Rand;
+using CredentialManagement;
 using OfficeAutomationClient.Helper;
 using OfficeAutomationClient.ViewModel;
 using System;
@@ -6,7 +9,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Security;
-using System.Text;
 using System.Windows.Media;
 using ValidateCodeProcessor;
 
@@ -18,8 +20,8 @@ namespace OfficeAutomationClient.OA
 
         private Business()
         {
-            WebRequestHelper.Create(OAUrl.Home).WithCookies(cookieContainer).GetResponseString();
-            WebRequestHelper.Create(OAUrl.Login).WithCookies(cookieContainer).GetResponseString();
+            HttpWebRequestClient.Create(OAUrl.Home).WithCookies(cookieContainer).GetResponseString();
+            HttpWebRequestClient.Create(OAUrl.Login).WithCookies(cookieContainer).GetResponseString();
 
             credentials = new CredentialSet(CredentialSetTarget);
             credentials.Load();
@@ -34,9 +36,9 @@ namespace OfficeAutomationClient.OA
 
         internal ImageSource GetValidateCodeImage()
         {
-            var bitmap = WebRequestHelper.Create(OAUrl.ValidateCode).WithCookies(cookieContainer).GetResponseStream().ToBitmap();
+            var bitmap = HttpWebRequestClient.Create(OAUrl.ValidateCode).WithCookies(cookieContainer).GetResponseStream().ToBitmap();
 
-            var imageSource = bitmap.GetImageSource();
+            var imageSource = bitmap.ToImageSource();
             validateCode = bitmap.Gray().DeNoise().Binarize().Text().Trim();
 
             return imageSource;
@@ -50,6 +52,7 @@ namespace OfficeAutomationClient.OA
         public void Dispose()
         {
             OcrProcessor.Instance.Dispose();
+            LogHelper.Shutdown();
         }
 
         internal void Login(LoginViewModel login, SecureString password)
@@ -63,15 +66,15 @@ namespace OfficeAutomationClient.OA
                 {"isie", "false" },
                 {"islanguid", "7" },
                 {"loginid", login.User},
-                {"userpassword", password.Text() },
+                {"userpassword", password.CreateString() },
                 {"submit", "登录" },
                 {"validatecode", login.ValidateCode },
             };
-            var resp = WebRequestHelper.Create(OAUrl.VerifyLogin).WithCookies(cookieContainer).WithParamters(loginparameters).GetResponseString();
+            var resp = HttpWebRequestClient.Create(OAUrl.VerifyLogin).WithCookies(cookieContainer).WithParamters(loginparameters).GetResponseString();
 
             if (login.RememberPwd)
             {
-                var credential = new Credential(login.User, password.Text(), CredentialSetTarget, CredentialType.Generic);
+                var credential = new Credential(login.User, password.CreateString(), CredentialSetTarget, CredentialType.Generic);
                 credential.Save();
                 if (!credentials.Exists(c => c.Username.Equals(login.User)))
                 {
@@ -86,17 +89,17 @@ namespace OfficeAutomationClient.OA
 
         internal void GetAttendance(string date)
         {
-            var resp = WebRequestHelper.Create(OAUrl.MonthAttDetail).WithCookies(cookieContainer).GetResponseString();
+            var resp = HttpWebRequestClient.Create(OAUrl.MonthAttDetail).WithCookies(cookieContainer).GetResponseString();
 
             var attparameters = new Dictionary<string, string>
             {
                 {"currentdate", date },
                 {"resourceId", "1209" },
                 {"departmentId", "86" },
-                {"rstr",RandomHelper.RandomString(10) },
+                {"rstr",RandomEx.NextString(10) },
                 {"subCompanyId", "1" },
             };
-            var attdata = WebRequestHelper.Create(OAUrl.MonthAttData).WithCookies(cookieContainer).WithParamters(attparameters).GetResponseString();
+            var attdata = HttpWebRequestClient.Create(OAUrl.MonthAttData).WithCookies(cookieContainer).WithParamters(attparameters).GetResponseString();
         }
 
         internal List<string> GetUsers()

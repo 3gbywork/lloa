@@ -17,5 +17,10 @@ namespace OfficeAutomationClient.Helper
             var type = typeof(T);
             return logFactory.CreateLogger(type.FullName);
         }
+
+        public static void Shutdown()
+        {
+            logFactory?.Dispose();
+        }
     }
 }

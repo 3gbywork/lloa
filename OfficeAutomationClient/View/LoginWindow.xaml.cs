@@ -1,19 +1,10 @@
-﻿using GalaSoft.MvvmLight.Messaging;
+﻿using CommonUtility.Extension;
+using GalaSoft.MvvmLight.Messaging;
 using GalaSoft.MvvmLight.Threading;
-using OfficeAutomationClient.Helper;
 using OfficeAutomationClient.OA;
-using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
-using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Shapes;
 
 namespace OfficeAutomationClient.View
 {
@@ -52,7 +43,7 @@ namespace OfficeAutomationClient.View
             DispatcherHelper.CheckBeginInvokeOnUI(() =>
             {
                 if (!string.IsNullOrEmpty(user))
-                    password.Password = Business.Instance.QueryPassword(user).Text();
+                    password.Password = Business.Instance.QueryPassword(user).CreateString();
                 else password.Password = string.Empty;
             });
         }

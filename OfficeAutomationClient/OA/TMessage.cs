@@ -8,13 +8,5 @@ namespace OfficeAutomationClient.OA
     enum TMessage
     {
         UserChanged,
-        CloseWindow,
-        CreateWindow,
-    }
-
-    enum WindowType
-    {
-        Login,
-        Content,
     }
 }

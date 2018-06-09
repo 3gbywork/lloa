@@ -1,10 +1,8 @@
 ﻿using CommonUtility.Logging;
-using GalaSoft.MvvmLight;
 using GalaSoft.MvvmLight.Command;
 using GalaSoft.MvvmLight.Messaging;
 using OfficeAutomationClient.Helper;
 using OfficeAutomationClient.OA;
-using System;
 using System.Collections.Generic;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -25,28 +23,28 @@ namespace OfficeAutomationClient.ViewModel
 
         public string Title => "登录";
 
-        public List<string> Users { get => _users; set => Set(nameof(Users), ref _users, value); }
+        public List<string> Users { get => _users; set => Set(ref _users, value); }
         public string User
         {
             get => _user;
             set
             {
-                Set(nameof(User), ref _user, value);
+                Set(ref _user, value);
                 Messenger.Default.Send(value, TMessage.UserChanged);
             }
         }
-        public string ValidateCode { get => _validateCode; set => Set(nameof(ValidateCode), ref _validateCode, value); }
+        public string ValidateCode { get => _validateCode; set => Set(ref _validateCode, value); }
         public ImageSource ValidateCodeImage
         {
             get => _validateCodeImage;
             set
             {
-                Set(nameof(ValidateCodeImage), ref _validateCodeImage, value);
+                Set(ref _validateCodeImage, value);
                 ValidateCode = Business.Instance.GetValidateCode();
             }
         }
-        public bool RememberPwd { get => _rememberPwd; set => Set(nameof(RememberPwd), ref _rememberPwd, value); }
-        public bool AutoLogin { get => _autoLogin; set => Set(nameof(AutoLogin), ref _autoLogin, value); }
+        public bool RememberPwd { get => _rememberPwd; set => Set(ref _rememberPwd, value); }
+        public bool AutoLogin { get => _autoLogin; set => Set(ref _autoLogin, value); }
 
         public ICommand RefreshValidateCodeCommand { get; set; }
         public ICommand LoginCommand { get; set; }
@@ -70,8 +68,7 @@ namespace OfficeAutomationClient.ViewModel
             {
                 if (Business.Instance.Login(this, p.SecurePassword))
                 {
-                    Messenger.Default.Send(WindowType.Login, TMessage.CloseWindow);
-                    Messenger.Default.Send(WindowType.Content, TMessage.CreateWindow);
+                    Close(true);
                 }
                 else
                 {

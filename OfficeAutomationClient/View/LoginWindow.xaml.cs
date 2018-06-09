@@ -4,14 +4,13 @@ using GalaSoft.MvvmLight.Threading;
 using OfficeAutomationClient.OA;
 using System.Collections.Generic;
 using System.Linq;
-using System.Windows;
 
 namespace OfficeAutomationClient.View
 {
     /// <summary>
     /// LoginWindow.xaml 的交互逻辑
     /// </summary>
-    public partial class LoginWindow : Window
+    public partial class LoginWindow : WindowBase
     {
         private List<string> users = new List<string>();
 
@@ -34,14 +33,6 @@ namespace OfficeAutomationClient.View
                      users.Add(user);
                  }
              });
-
-            Messenger.Default.Register<WindowType>(this, TMessage.CloseWindow, (type) =>
-            {
-                if (type == WindowType.Login)
-                {
-                    Close();
-                }
-            });
 
             InitializeComponent();
         }

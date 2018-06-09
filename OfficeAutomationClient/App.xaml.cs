@@ -16,11 +16,17 @@ namespace OfficeAutomationClient
 
             DispatcherHelper.Initialize();
 
-            var login = new LoginWindow();
-            var rst = login.ShowDialog();
+            var rst = ViewLocator.LoginWindow.ShowDialog();
+
             if (rst.HasValue && rst.Value)
             {
-                new InfoWindow().Show();
+                Current.ShutdownMode = ShutdownMode.OnMainWindowClose;
+                ViewLocator.InfoWindow.Show();
+
+            }
+            else
+            {
+                Current.Shutdown();
             }
 
         }

@@ -102,7 +102,7 @@ namespace OfficeAutomationClient.OA
             var attparameters = new Dictionary<string, string>
             {
                 {"currentdate", date },
-                {"resourceId", "1209" },
+                {"resourceId", userId },
                 {"departmentId", "86" },
                 {"rstr",RandomEx.NextString(10) },
                 {"subCompanyId", "1" },

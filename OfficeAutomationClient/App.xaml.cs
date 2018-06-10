@@ -22,20 +22,18 @@ namespace OfficeAutomationClient
             {
                 Current.ShutdownMode = ShutdownMode.OnMainWindowClose;
                 ViewLocator.InfoWindow.Show();
-
             }
             else
             {
                 Current.Shutdown();
             }
-
         }
 
         protected override void OnExit(ExitEventArgs e)
         {
-            Business.Instance.Dispose();
-
             base.OnExit(e);
+
+            Business.Instance.Dispose();
         }
     }
 }

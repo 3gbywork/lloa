@@ -42,10 +42,14 @@ namespace OfficeAutomationClient.ViewModel
             ////}
 
             SimpleIoc.Default.Register<LoginViewModel>();
+            SimpleIoc.Default.Register<InfoViewModel>();
+            SimpleIoc.Default.Register<AboutViewModel>();
         }
 
         public LoginViewModel Login => ServiceLocator.Current.GetInstance<LoginViewModel>();
-        
+        public InfoViewModel Info => ServiceLocator.Current.GetInstance<InfoViewModel>();
+        public AboutViewModel About => ServiceLocator.Current.GetInstance<AboutViewModel>();
+
         public static void Cleanup()
         {
             // TODO Clear the ViewModels

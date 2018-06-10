@@ -1,5 +1,6 @@
 ﻿using CommonUtility.Extension;
 using CommonUtility.Http;
+using CommonUtility.Logging;
 using CommonUtility.Rand;
 using CredentialManagement;
 using OfficeAutomationClient.Helper;
@@ -8,7 +9,9 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
+using System.Reflection;
 using System.Security;
+using System.Text.RegularExpressions;
 using System.Windows.Media;
 using ValidateCodeProcessor;
 
@@ -16,12 +19,18 @@ namespace OfficeAutomationClient.OA
 {
     class Business : IDisposable
     {
+        private static ILogger logger = LogHelper.GetLogger<Business>();
+
+        public static string AssemblyName = Assembly.GetExecutingAssembly().GetName().Name;
+
         const string CredentialSetTarget = "OfficeAutomationClient";
 
         private Business()
         {
             HttpWebRequestClient.Create(OAUrl.Home).WithCookies(cookieContainer).GetResponseString();
-            HttpWebRequestClient.Create(OAUrl.Login).WithCookies(cookieContainer).GetResponseString();
+            var resp = HttpWebRequestClient.Create(OAUrl.Login).WithCookies(cookieContainer).GetResponseString();
+
+            title = TryGetTitle(resp);
 
             credentials = new CredentialSet(CredentialSetTarget);
             credentials.Load();
@@ -30,11 +39,30 @@ namespace OfficeAutomationClient.OA
         private static Business business = new Business();
         public static Business Instance => business;
 
+        internal void GetOrganization()
+        {
+            throw new NotImplementedException();
+        }
+
         private CookieContainer cookieContainer = new CookieContainer();
         private string validateCode;
         private CredentialSet credentials;
 
+        private string title;
         private string userId;
+
+        private string TryGetTitle(string resp)
+        {
+            try
+            {
+                return Regex.Match(resp, "document.title='(.+)'").Value.Split('\'')[1];
+            }
+            catch (Exception ex)
+            {
+                logger.Error(ex, null, "解析 title 出错，resp：{0}", resp);
+                return "OA";
+            }
+        }
 
         internal ImageSource GetValidateCodeImage()
         {
@@ -120,6 +148,11 @@ namespace OfficeAutomationClient.OA
             var user = credentials.Find(c => c.Username.Equals(username));
             if (null != user) return user.SecurePassword;
             return new SecureString();
+        }
+
+        internal string GetTitle()
+        {
+            return title;
         }
     }
 }

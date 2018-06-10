@@ -2,6 +2,7 @@
 using GalaSoft.MvvmLight.Messaging;
 using GalaSoft.MvvmLight.Threading;
 using OfficeAutomationClient.OA;
+using OfficeAutomationClient.ViewModel;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -20,6 +21,12 @@ namespace OfficeAutomationClient.View
             {
                 var user = users.Last();
                 GetPassword(user);
+
+                var vm = GetViewModel<LoginViewModel>();
+                if (vm.AutoLogin)
+                {
+                    vm.LoginCommand.Execute(password);
+                }
             };
 
             Messenger.Default.Register<string>(this, TMessage.UserChanged, (user) =>

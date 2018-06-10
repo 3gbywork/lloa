@@ -5,8 +5,29 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:OfficeAutomationClient.View"
         mc:Ignorable="d"
-        Title="InfoWindow" Height="450" Width="800">
+        DataContext="{Binding Source={StaticResource Locator}, Path=Info}"
+        Title="{Binding Title}" Height="800" Width="1280">
     <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="auto"/>
+        </Grid.RowDefinitions>
 
+        <Menu Grid.Row="0">
+            <MenuItem Header="查询(_Q)">
+                <MenuItem Header="组织结构(_O)" Command="{Binding QueryOrganizationCommand}"/>
+                <MenuItem Header="月考勤(_M)" Command="{Binding QueryMonthAttDataCommand}"/>
+            </MenuItem>
+            <MenuItem Header="帮助(_H)">
+                <MenuItem Header="关于(_A)" Command="{Binding AboutCommand}"/>
+            </MenuItem>
+        </Menu>
+
+        <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
+            <ContentControl Content="{Binding Content}"/>
+        </ScrollViewer>
+
+        <StatusBar Grid.Row="2" ItemsSource="{Binding StatusBarItems}"/>
     </Grid>
 </local:WindowBase>

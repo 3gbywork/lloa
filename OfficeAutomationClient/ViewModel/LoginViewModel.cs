@@ -74,8 +74,6 @@ namespace OfficeAutomationClient.ViewModel
                 {
                     ValidateCodeImage = Business.Instance.GetValidateCodeImage();
                 }
-
-                //Business.Instance.GetAttendance(DateTime.Now.ToString("yyyy-MM-dd"));
             });
         }
     }

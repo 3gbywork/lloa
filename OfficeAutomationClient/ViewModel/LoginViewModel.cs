@@ -52,7 +52,7 @@ namespace OfficeAutomationClient.ViewModel
 
         public LoginViewModel()
         {
-            logger.Info("初始化账号");
+            logger.Info("初始化登陆信息……");
             Users = Business.Instance.GetUsers();
             ValidateCodeImage = Business.Instance.GetValidateCodeImage();
 
@@ -62,17 +62,20 @@ namespace OfficeAutomationClient.ViewModel
 
             RefreshValidateCodeCommand = new RelayCommand(() =>
             {
+                logger.Info("获取验证码……");
                 ValidateCodeImage = Business.Instance.GetValidateCodeImage();
             });
             LoginCommand = new RelayCommand<PasswordBox>((p) =>
             {
-                if (Business.Instance.Login(this, p.SecurePassword))
+                var rst = Business.Instance.Login(this, p.SecurePassword);
+                logger.Info($"登陆 {(rst ? "成功" : "失败")}");
+                if (rst)
                 {
                     Close(true);
                 }
                 else
                 {
-                    ValidateCodeImage = Business.Instance.GetValidateCodeImage();
+                    RefreshValidateCodeCommand.Execute(null);
                 }
             });
         }

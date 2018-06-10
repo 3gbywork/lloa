@@ -1,6 +1,8 @@
 ﻿using CommonUtility.Extension;
+using CommonUtility.Logging;
 using GalaSoft.MvvmLight.Messaging;
 using GalaSoft.MvvmLight.Threading;
+using OfficeAutomationClient.Helper;
 using OfficeAutomationClient.OA;
 using OfficeAutomationClient.ViewModel;
 using System.Collections.Generic;
@@ -13,6 +15,8 @@ namespace OfficeAutomationClient.View
     /// </summary>
     public partial class LoginWindow : WindowBase
     {
+        private static ILogger logger = LogHelper.GetLogger<LoginWindow>();
+
         private List<string> users = new List<string>();
 
         public LoginWindow()
@@ -25,6 +29,7 @@ namespace OfficeAutomationClient.View
                 var vm = GetViewModel<LoginViewModel>();
                 if (vm.AutoLogin)
                 {
+                    logger.Info("开始自动登陆……");
                     vm.LoginCommand.Execute(password);
                 }
             };

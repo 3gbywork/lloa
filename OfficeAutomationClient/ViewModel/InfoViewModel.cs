@@ -34,14 +34,18 @@ namespace OfficeAutomationClient.ViewModel
         {
             QueryOrganizationCommand = new RelayCommand(() =>
             {
+                logger.Info("查询 组织结构 信息……");
                 Business.Instance.GetOrganization();
             });
             QueryMonthAttDataCommand = new RelayCommand(() =>
             {
-                Business.Instance.GetAttendance(DateTime.Now.ToString("yyyy-MM-dd"));
+                var date = DateTime.Now.ToString("yyyy-MM-dd");
+                logger.Info($"查询 {date} 月考勤 记录……");
+                Business.Instance.GetAttendance(date);
             });
             AboutCommand = new RelayCommand(() =>
             {
+                logger.Info("关于……");
                 ViewLocator.AboutWindow.ShowDialog();
             });
         }

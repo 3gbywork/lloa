@@ -48,7 +48,7 @@ namespace OfficeAutomationClient.OA
         private string validateCode;
         private CredentialSet credentials;
 
-        private string title;
+        private readonly string title;
         private string userId;
 
         private string TryGetTitle(string resp)

@@ -137,6 +137,7 @@
       <Generator>MSBuild:Compile</Generator>
     </ApplicationDefinition>
     <Compile Include="Helper\ConfigHelper.cs" />
+    <Compile Include="Model\Organization.cs" />
     <Compile Include="OA\Business.cs" />
     <Compile Include="OA\TMessage.cs" />
     <Compile Include="ViewModel\AboutViewModel.cs" />
@@ -211,6 +212,7 @@
   <ItemGroup>
     <EmbeddedResource Include="Resources\validateimg.png" />
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Import Project="..\packages\Microsoft.Bcl.Build.1.0.14\tools\Microsoft.Bcl.Build.targets" Condition="Exists('..\packages\Microsoft.Bcl.Build.1.0.14\tools\Microsoft.Bcl.Build.targets')" />
   <Target Name="EnsureBclBuildImported" BeforeTargets="BeforeBuild" Condition="'$(BclBuildImported)' == ''">

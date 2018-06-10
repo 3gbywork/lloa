@@ -35,7 +35,7 @@ namespace OfficeAutomationClient.ViewModel
             QueryOrganizationCommand = new RelayCommand(() =>
             {
                 logger.Info("查询 组织结构 信息……");
-                Business.Instance.GetOrganization();
+                var organizations = Business.Instance.GetOrganizations();
             });
             QueryMonthAttDataCommand = new RelayCommand(() =>
             {

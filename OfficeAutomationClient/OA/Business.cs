@@ -3,7 +3,9 @@ using CommonUtility.Http;
 using CommonUtility.Logging;
 using CommonUtility.Rand;
 using CredentialManagement;
+using Newtonsoft.Json;
 using OfficeAutomationClient.Helper;
+using OfficeAutomationClient.Model;
 using OfficeAutomationClient.ViewModel;
 using System;
 using System.Collections.Generic;
@@ -39,17 +41,13 @@ namespace OfficeAutomationClient.OA
         private static Business business = new Business();
         public static Business Instance => business;
 
-        internal void GetOrganization()
-        {
-            throw new NotImplementedException();
-        }
-
         private CookieContainer cookieContainer = new CookieContainer();
         private string validateCode;
         private CredentialSet credentials;
 
         private readonly string title;
         private string userId;
+        private string companyName;
 
         private string TryGetTitle(string resp)
         {
@@ -61,6 +59,20 @@ namespace OfficeAutomationClient.OA
             {
                 logger.Error(ex, null, "解析 title 出错，resp：{0}", resp);
                 return "OA";
+            }
+        }
+
+        private string GetCompanyName()
+        {
+            try
+            {
+                var resp = HttpWebRequestClient.Create(OAUrl.SysRemind).WithCookies(cookieContainer).GetResponseString();
+                return Regex.Match(resp, "companyname = \"(.+)\"").Value.Split('\"')[1];
+            }
+            catch (Exception ex)
+            {
+                logger.Error(ex, null, "解析 companyname 出错");
+                return "Company";
             }
         }
 
@@ -87,7 +99,7 @@ namespace OfficeAutomationClient.OA
 
         internal bool Login(LoginViewModel login, SecureString password)
         {
-            var loginparameters = new Dictionary<string, string>
+            var parameters = new Dictionary<string, string>
             {
                 {"loginfile","/wui/theme/ecology8/page/login.jsp?templateId=3&logintype=1&gopage=" },
                 {"logintype", "1" },
@@ -100,11 +112,11 @@ namespace OfficeAutomationClient.OA
                 {"submit", "登录" },
                 {"validatecode", login.ValidateCode },
             };
-            var resp = HttpWebRequestClient.Create(OAUrl.VerifyLogin).WithCookies(cookieContainer).WithParamters(loginparameters).GetResponseString();
-
+            var resp = HttpWebRequestClient.Create(OAUrl.VerifyLogin).WithCookies(cookieContainer).WithParamters(parameters).GetResponseString();
             if (!resp.Contains("logincookiecheck")) return false;
 
             userId = cookieContainer.GetCookies(new Uri(OAUrl.Home))["loginidweaver"].Value;
+            companyName = GetCompanyName();
 
             if (login.RememberPwd)
             {
@@ -123,11 +135,53 @@ namespace OfficeAutomationClient.OA
             return true;
         }
 
+        internal Organizations GetOrganizations()
+        {
+            var parameters = new Dictionary<string, string>
+            {
+                {"cmd", "initChart"},
+                {"arg0", ""},
+                {"arg1", "10000"},
+                {"arg2", companyName},
+                {"arg3", "true"},
+                {"arg4", "8"},
+                {"arg5", ""},
+                {"arg6", ""},
+                {"arg7", ""},
+                {"arg8", ""},
+                {"arg9", ""},
+                {"arg10", ""},
+                {"arg11", ";;P"},
+            };
+            var resp = HttpWebRequestClient.Create(OAUrl.Organization).WithCookies(cookieContainer).WithParamters(parameters).GetResponseString();
+            return JsonConvert.DeserializeObject<Organizations>(resp);
+        }
+
+        internal void GetPeople(Organization org)
+        {
+            var resp = HttpWebRequestClient.Create($"{OAUrl.HrmResourceList}{(org.Type == OrganizationType.Dept ? org.ID.Substring(1) : org.ID)}").WithCookies(cookieContainer).GetResponseString();
+            var tableString = Regex.Match(resp, "__tableStringKey__='(.+)'").Value.Split('\'')[1];
+
+            var pageIndex = 0;
+            var parameters = new Dictionary<string, string>
+            {
+                {"tableInstanceId", ""},
+                {"tableString", tableString},
+                {"pageIndex", pageIndex.ToString()},
+                {"orderBy", " dsporder "},
+                {"otype", "ASC"},
+                {"mode", "run"},
+                {"customParams", "null"},
+                {"selectedstrs", ""},
+                {"pageId", "Hrm:ResourceList"},
+            };
+        }
+
         internal void GetAttendance(string date)
         {
-            var resp = HttpWebRequestClient.Create(OAUrl.MonthAttDetail).WithCookies(cookieContainer).GetResponseString();
+            //var resp = HttpWebRequestClient.Create(OAUrl.MonthAttDetail).WithCookies(cookieContainer).GetResponseString();
 
-            var attparameters = new Dictionary<string, string>
+            var parameters = new Dictionary<string, string>
             {
                 {"currentdate", date },
                 {"resourceId", userId },
@@ -135,7 +189,7 @@ namespace OfficeAutomationClient.OA
                 {"rstr",RandomEx.NextString(10) },
                 {"subCompanyId", "1" },
             };
-            var attdata = HttpWebRequestClient.Create(OAUrl.MonthAttData).WithCookies(cookieContainer).WithParamters(attparameters).GetResponseString();
+            var attdata = HttpWebRequestClient.Create(OAUrl.MonthAttData).WithCookies(cookieContainer).WithParamters(parameters).GetResponseString();
         }
 
         internal List<string> GetUsers()

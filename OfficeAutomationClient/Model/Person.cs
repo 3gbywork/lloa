@@ -18,11 +18,11 @@ namespace OfficeAutomationClient.Model
         [DisplayName("状态")]
         public string Status { get; set; }
         [DisplayName("直接上级")]
-        public string ManagerID { get; set; }
+        public string Manager { get; set; }
         [DisplayName("岗位")]
         public string JobTitle { get; set; }
         [DisplayName("显示顺序")]
-        public int DspOrder { get; set; }
+        public int ID { get; set; }
 
         public string OrganizationID { get; set; }
     }

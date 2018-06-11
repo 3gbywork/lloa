@@ -5,6 +5,7 @@ using CommonUtility.Rand;
 using CredentialManagement;
 using HtmlAgilityPack;
 using Newtonsoft.Json;
+using OfficeAutomationClient.Database;
 using OfficeAutomationClient.Helper;
 using OfficeAutomationClient.Model;
 using OfficeAutomationClient.ViewModel;
@@ -130,9 +131,15 @@ namespace OfficeAutomationClient.OA
                 ConfigHelper.Save(ConfigKey.AutoLogin, login.AutoLogin.ToString());
             }
 
+#if DEBUG
+            using (var context = new OrganizationContext("data source=SqliteTest.db"))
+                DbInitializer.Initialize(context);
+#endif
+
             return true;
         }
 
+#if DEBUG
         internal Organizations GetOrganizations()
         {
             var parameters = new Dictionary<string, string>
@@ -155,32 +162,19 @@ namespace OfficeAutomationClient.OA
             return JsonConvert.DeserializeObject<Organizations>(resp);
         }
 
-        internal People GetPeople(Organization org)
+        internal People GetPeople(Organization dept)
         {
-            //var param = new Dictionary<string, string>
-            //{
-            //    {"_fromURL", "HrmDepartmentDsp"},
-            //    {"id", "0"},
-            //    {"hasTree", "false"},
-            //};
-            //var rsp = HttpWebRequestClient.Create(OAUrl.Department).WithCookies(cookieContainer).WithParamters(param).GetResponseString();
+            var people = new People();
+            if (dept.Type != OrganizationType.Dept) return people;
 
-            //param = new Dictionary<string, string>
-            //{
-            //    {"id", "0"},
-            //    {"fromHrmTab", "1"},
-            //};
-            //rsp = HttpWebRequestClient.Create(OAUrl.DepartmentInfo).WithCookies(cookieContainer).WithParamters(param).GetResponseString();
-
-            var orgID = org.Type == OrganizationType.Dept ? org.ID.Substring(1) : org.ID;
-            var resp = HttpWebRequestClient.Create($"{OAUrl.HrmResourceList}{(orgID)}").WithCookies(cookieContainer).GetResponseString();
+            var resp = HttpWebRequestClient.Create($"{OAUrl.HrmResourceList}{dept.ID.Substring(1)}").WithCookies(cookieContainer).GetResponseString();
             var tableString = Regex.Match(resp, "__tableStringKey__='(.+)'").Value.Split('\'')[1];
 
-            var people = new People();
+            var dom = new HtmlDocument();
 
+            var pageIndex = 1;
             while (true)
             {
-                var pageIndex = 1;
                 var parameters = new Dictionary<string, string>
                 {
                     {"tableInstanceId", ""},
@@ -189,20 +183,46 @@ namespace OfficeAutomationClient.OA
                     {"orderBy", "dsporder"},
                     {"otype", "ASC"},
                     {"mode", "run"},
-                    {"customParams", "null"},
+                    {"customParams", ""},
                     {"selectedstrs", ""},
                     {"pageId", "Hrm:ResourceList"},
                 };
                 resp = HttpWebRequestClient.Create(OAUrl.SplitPage).WithCookies(cookieContainer).WithParamters(parameters).GetResponseString();
-
-                var dom = new HtmlDocument();
                 dom.LoadHtml(resp);
 
-                break;
+                foreach (HtmlNode row in dom.DocumentNode.SelectNodes("/table/row"))
+                {
+                    var index = "<![CDATA[".Length;
+                    var cdataLength = "<![CDATA[]]>".Length;
+                    var columns = row.ChildNodes.Where(n => n.Name.Equals("col")).ToList();
+                    var comments = row.ChildNodes.Where(n => n.Name.Equals("#comment")).ToList();
+                    var person = new Person
+                    {
+                        LastName = columns[1].Attributes["value"].Value,
+                        WorkCode = columns[2].Attributes["value"].Value,
+                        Sex = comments[2].InnerHtml.Substring(index, comments[2].InnerLength - cdataLength),
+                        Status = comments[3].InnerHtml.Substring(index, comments[3].InnerLength - cdataLength),
+                        Manager = comments[4].InnerHtml.Substring(index, comments[4].InnerLength - cdataLength),
+                        JobTitle = comments[5].InnerHtml.Substring(index, comments[5].InnerLength - cdataLength),
+                        ID = int.Parse(columns[7].Attributes["value"].Value.Split('.')[0]),
+                        OrganizationID = dept.ID,
+                    };
+                    people.Add(person);
+                }
+
+                var root = dom.DocumentNode.SelectSingleNode("/table");
+                var nowpage = int.Parse(root.Attributes["nowpage"].Value);
+                var pagenum = int.Parse(root.Attributes["pagenum"].Value);
+
+                pageIndex++;
+
+                if (nowpage == pagenum || pageIndex > pagenum)
+                    break;
             }
 
             return people;
         }
+#endif
 
         internal void GetAttendance(string date)
         {

@@ -37,11 +37,9 @@ namespace OfficeAutomationClient.ViewModel
             {
                 logger.Info("查询 组织结构 信息……");
                 //var organizations = Business.Instance.GetOrganizations();
-                //var org = organizations.First();
+                //var org = organizations.Where(o => o.Type == OrganizationType.Dept).First();
 
-                var org = new Organization { ID = "d86", Type = OrganizationType.Dept };
-
-                var people = Business.Instance.GetPeople(org);
+                //var people = Business.Instance.GetPeople(org);
             });
             QueryMonthAttDataCommand = new RelayCommand(() =>
             {

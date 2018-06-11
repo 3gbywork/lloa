@@ -138,8 +138,9 @@
     </ApplicationDefinition>
     <Compile Include="Helper\ConfigHelper.cs" />
     <Compile Include="Model\Organization.cs" />
+    <Compile Include="Model\Person.cs" />
     <Compile Include="OA\Business.cs" />
-    <Compile Include="OA\TMessage.cs" />
+    <Compile Include="OA\TMessageToken.cs" />
     <Compile Include="ViewModel\AboutViewModel.cs" />
     <Compile Include="ViewModel\InfoViewModel.cs" />
     <Compile Include="ViewModel\LoginViewModel.cs" />

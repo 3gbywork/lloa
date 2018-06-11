@@ -5,8 +5,9 @@ using System.Text;
 
 namespace OfficeAutomationClient.OA
 {
-    enum TMessage
+    enum TMessageToken
     {
         UserChanged,
+        ShowConfirmation,
     }
 }

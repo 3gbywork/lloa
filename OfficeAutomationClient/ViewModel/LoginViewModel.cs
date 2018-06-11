@@ -30,7 +30,7 @@ namespace OfficeAutomationClient.ViewModel
             set
             {
                 Set(ref _user, value);
-                Messenger.Default.Send(value, TMessage.UserChanged);
+                Messenger.Default.Send(value, TMessageToken.UserChanged);
             }
         }
         public string ValidateCode { get => _validateCode; set => Set(ref _validateCode, value); }
@@ -67,6 +67,9 @@ namespace OfficeAutomationClient.ViewModel
             });
             LoginCommand = new RelayCommand<PasswordBox>((p) =>
             {
+                if (string.IsNullOrEmpty(User) || p.SecurePassword.Length == 0)
+                    Messenger.Default.Send("用户名或密码不能为空", TMessageToken.ShowConfirmation);
+
                 var rst = Business.Instance.Login(this, p.SecurePassword);
                 logger.Info($"登陆 {(rst ? "成功" : "失败")}");
                 if (rst)

@@ -3,6 +3,7 @@ using CommonUtility.Http;
 using CommonUtility.Logging;
 using CommonUtility.Rand;
 using CredentialManagement;
+using HtmlAgilityPack;
 using Newtonsoft.Json;
 using OfficeAutomationClient.Helper;
 using OfficeAutomationClient.Model;
@@ -120,12 +121,9 @@ namespace OfficeAutomationClient.OA
 
             if (login.RememberPwd)
             {
-                var credential = new Credential(login.User, password.CreateString(), CredentialSetTarget, CredentialType.Generic);
+                var credential = new Credential(login.User, password.CreateString(), CredentialSetTarget, CredentialType.Generic) { PersistanceType = PersistanceType.LocalComputer };
                 credential.Save();
-                if (!credentials.Exists(c => c.Username.Equals(login.User)))
-                {
-                    credentials.Add(credential);
-                }
+                credentials.Load();
 
                 ConfigHelper.Save(ConfigKey.User, login.User);
                 ConfigHelper.Save(ConfigKey.RememberPwd, login.RememberPwd.ToString());
@@ -157,24 +155,53 @@ namespace OfficeAutomationClient.OA
             return JsonConvert.DeserializeObject<Organizations>(resp);
         }
 
-        internal void GetPeople(Organization org)
+        internal People GetPeople(Organization org)
         {
-            var resp = HttpWebRequestClient.Create($"{OAUrl.HrmResourceList}{(org.Type == OrganizationType.Dept ? org.ID.Substring(1) : org.ID)}").WithCookies(cookieContainer).GetResponseString();
+            //var param = new Dictionary<string, string>
+            //{
+            //    {"_fromURL", "HrmDepartmentDsp"},
+            //    {"id", "0"},
+            //    {"hasTree", "false"},
+            //};
+            //var rsp = HttpWebRequestClient.Create(OAUrl.Department).WithCookies(cookieContainer).WithParamters(param).GetResponseString();
+
+            //param = new Dictionary<string, string>
+            //{
+            //    {"id", "0"},
+            //    {"fromHrmTab", "1"},
+            //};
+            //rsp = HttpWebRequestClient.Create(OAUrl.DepartmentInfo).WithCookies(cookieContainer).WithParamters(param).GetResponseString();
+
+            var orgID = org.Type == OrganizationType.Dept ? org.ID.Substring(1) : org.ID;
+            var resp = HttpWebRequestClient.Create($"{OAUrl.HrmResourceList}{(orgID)}").WithCookies(cookieContainer).GetResponseString();
             var tableString = Regex.Match(resp, "__tableStringKey__='(.+)'").Value.Split('\'')[1];
 
-            var pageIndex = 0;
-            var parameters = new Dictionary<string, string>
+            var people = new People();
+
+            while (true)
             {
-                {"tableInstanceId", ""},
-                {"tableString", tableString},
-                {"pageIndex", pageIndex.ToString()},
-                {"orderBy", " dsporder "},
-                {"otype", "ASC"},
-                {"mode", "run"},
-                {"customParams", "null"},
-                {"selectedstrs", ""},
-                {"pageId", "Hrm:ResourceList"},
-            };
+                var pageIndex = 1;
+                var parameters = new Dictionary<string, string>
+                {
+                    {"tableInstanceId", ""},
+                    {"tableString", tableString},
+                    {"pageIndex", pageIndex.ToString()},
+                    {"orderBy", "dsporder"},
+                    {"otype", "ASC"},
+                    {"mode", "run"},
+                    {"customParams", "null"},
+                    {"selectedstrs", ""},
+                    {"pageId", "Hrm:ResourceList"},
+                };
+                resp = HttpWebRequestClient.Create(OAUrl.SplitPage).WithCookies(cookieContainer).WithParamters(parameters).GetResponseString();
+
+                var dom = new HtmlDocument();
+                dom.LoadHtml(resp);
+
+                break;
+            }
+
+            return people;
         }
 
         internal void GetAttendance(string date)

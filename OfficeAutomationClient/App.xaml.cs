@@ -1,4 +1,5 @@
-﻿using GalaSoft.MvvmLight.Threading;
+﻿using GalaSoft.MvvmLight.Messaging;
+using GalaSoft.MvvmLight.Threading;
 using OfficeAutomationClient.OA;
 using OfficeAutomationClient.View;
 using System.Windows;
@@ -15,6 +16,10 @@ namespace OfficeAutomationClient
             base.OnStartup(e);
 
             DispatcherHelper.Initialize();
+            Messenger.Default.Register<string>(this, TMessageToken.ShowConfirmation, (msg) =>
+            {
+                MessageBox.Show(msg);
+            });
 
             var rst = ViewLocator.LoginWindow.ShowDialog();
 

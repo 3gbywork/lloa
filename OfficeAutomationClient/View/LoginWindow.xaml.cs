@@ -27,14 +27,14 @@ namespace OfficeAutomationClient.View
                 GetPassword(user);
 
                 var vm = GetViewModel<LoginViewModel>();
-                if (vm.AutoLogin)
+                if (vm.AutoLogin && !string.IsNullOrEmpty(user) && password.SecurePassword.Length > 0)
                 {
                     logger.Info("开始自动登陆……");
                     vm.LoginCommand.Execute(password);
                 }
             };
 
-            Messenger.Default.Register<string>(this, TMessage.UserChanged, (user) =>
+            Messenger.Default.Register<string>(this, TMessageToken.UserChanged, (user) =>
              {
                  if (IsLoaded)
                  {

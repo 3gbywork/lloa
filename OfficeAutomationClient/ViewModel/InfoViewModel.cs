@@ -1,6 +1,7 @@
 ﻿using CommonUtility.Logging;
 using GalaSoft.MvvmLight.Command;
 using OfficeAutomationClient.Helper;
+using OfficeAutomationClient.Model;
 using OfficeAutomationClient.OA;
 using OfficeAutomationClient.View;
 using System;
@@ -35,7 +36,12 @@ namespace OfficeAutomationClient.ViewModel
             QueryOrganizationCommand = new RelayCommand(() =>
             {
                 logger.Info("查询 组织结构 信息……");
-                var organizations = Business.Instance.GetOrganizations();
+                //var organizations = Business.Instance.GetOrganizations();
+                //var org = organizations.First();
+
+                var org = new Organization { ID = "d86", Type = OrganizationType.Dept };
+
+                var people = Business.Instance.GetPeople(org);
             });
             QueryMonthAttDataCommand = new RelayCommand(() =>
             {

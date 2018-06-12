@@ -1,35 +1,35 @@
-﻿using OfficeAutomationClient.OA;
-using System;
-using System.Collections.Generic;
+﻿using OfficeAutomationClient.Model;
+using OfficeAutomationClient.OA;
+using SQLite.CodeFirst;
+using System.Data.Entity;
 using System.Linq;
-using System.Text;
 
 namespace OfficeAutomationClient.Database
 {
-    static class DbInitializer
+    internal class DbInitializer : SqliteDropCreateDatabaseAlways<OrganizationContext>
     {
-        internal static void Initialize(OrganizationContext context)
+        public DbInitializer(DbModelBuilder modelBuilder) : base(modelBuilder)
+        {
+        }
+
+        protected override void Seed(OrganizationContext context)
         {
 #if DEBUG
-            if (!context.Database.CreateIfNotExists()) return;
+            var org = Business.Instance.GetOrganizations();
+            if (null == org || org.Count == 0) return;
 
-            if (!context.Organizations.Any())
+            context.Set<Organization>().AddRange(org);
+            context.SaveChanges();
+
+
+            foreach (var dept in context.Organizations.Where(o => o.Type == Model.OrganizationType.Dept && o.Num > 0))
             {
-                var organizations = Business.Instance.GetOrganizations();
+                var people = Business.Instance.GetPeople(dept);
+                if (null == people || people.Count == 0) continue;
 
-                context.Organizations.AddRange(organizations);
-                context.SaveChanges();
+                context.Set<Person>().AddRange(people);
             }
-            if (!context.People.Any())
-            {
-                foreach (var dept in context.Organizations.Where(o => o.Type == Model.OrganizationType.Dept))
-                {
-                    var people = Business.Instance.GetPeople(dept);
-
-                    context.People.AddRange(people);
-                }
-                context.SaveChanges();
-            }
+            context.SaveChanges();
 #endif
         }
     }

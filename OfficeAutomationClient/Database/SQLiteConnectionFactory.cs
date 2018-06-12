@@ -40,7 +40,7 @@ namespace OfficeAutomationClient.Database
                 {
                     DataSource = nameOrConnectionString,
                     Version = 3,
-                    Password = Business.Instance.QueryPassword(Business.AssemblyName).CreateString(),
+                    //Password = Business.Instance.QueryPassword(Business.AssemblyName).CreateString(),
                 }.ConnectionString;
             }
             DbConnection connection = null;

@@ -16,6 +16,7 @@ using System.Net;
 using System.Reflection;
 using System.Security;
 using System.Text.RegularExpressions;
+using System.Threading;
 using System.Windows.Media;
 using ValidateCodeProcessor;
 
@@ -28,6 +29,7 @@ namespace OfficeAutomationClient.OA
         public static string AssemblyName = Assembly.GetExecutingAssembly().GetName().Name;
 
         const string CredentialSetTarget = "OfficeAutomationClient";
+        const string DbFileName = "organization.db";
 
         private Business()
         {
@@ -132,8 +134,8 @@ namespace OfficeAutomationClient.OA
             }
 
 #if DEBUG
-            using (var context = new OrganizationContext("organization.db"))
-                DbInitializer.Initialize(context);
+            using (var context = new OrganizationContext(DbFileName))
+                context.Database.Initialize(true);
 #endif
 
             return true;
@@ -158,8 +160,16 @@ namespace OfficeAutomationClient.OA
                 {"arg10", ""},
                 {"arg11", ";;P"},
             };
-            var resp = HttpWebRequestClient.Create(OAUrl.Organization).WithCookies(cookieContainer).WithParamters(parameters).GetResponseString();
-            return JsonConvert.DeserializeObject<Organizations>(resp);
+            try
+            {
+                var resp = HttpWebRequestClient.Create(OAUrl.Organization).WithCookies(cookieContainer).WithParamters(parameters).GetResponseString();
+                return JsonConvert.DeserializeObject<Organizations>(resp);
+            }
+            catch (Exception ex)
+            {
+                logger.Error(ex, null, "获取 {0} 组织结构出错", companyName);
+                return default(Organizations);
+            }
         }
 
         internal People GetPeople(Organization dept)
@@ -167,57 +177,86 @@ namespace OfficeAutomationClient.OA
             var people = new People();
             if (dept.Type != OrganizationType.Dept) return people;
 
-            var resp = HttpWebRequestClient.Create($"{OAUrl.HrmResourceList}{dept.ID.Substring(1)}").WithCookies(cookieContainer).GetResponseString();
-            var tableString = Regex.Match(resp, "__tableStringKey__='(.+)'").Value.Split('\'')[1];
-
-            var dom = new HtmlDocument();
-
-            var pageIndex = 1;
-            while (true)
+            try
             {
-                var parameters = new Dictionary<string, string>
-                {
-                    {"tableInstanceId", ""},
-                    {"tableString", tableString},
-                    {"pageIndex", pageIndex.ToString()},
-                    {"orderBy", "dsporder"},
-                    {"otype", "ASC"},
-                    {"mode", "run"},
-                    {"customParams", ""},
-                    {"selectedstrs", ""},
-                    {"pageId", "Hrm:ResourceList"},
-                };
-                resp = HttpWebRequestClient.Create(OAUrl.SplitPage).WithCookies(cookieContainer).WithParamters(parameters).GetResponseString();
-                dom.LoadHtml(resp);
+                var resp = HttpWebRequestClient.Create($"{OAUrl.HrmResourceList}{dept.ID.Substring(1)}").WithCookies(cookieContainer).GetResponseString();
+                var tableString = Regex.Match(resp, "__tableStringKey__='(.+)'").Value.Split('\'')[1];
 
-                foreach (HtmlNode row in dom.DocumentNode.SelectNodes("/table/row"))
+                var dom = new HtmlDocument();
+
+                var pageIndex = 1;
+                const int delayMilliseconds = 100;
+                while (true)
                 {
-                    var index = "<![CDATA[".Length;
-                    var cdataLength = "<![CDATA[]]>".Length;
-                    var columns = row.ChildNodes.Where(n => n.Name.Equals("col")).ToList();
-                    var comments = row.ChildNodes.Where(n => n.Name.Equals("#comment")).ToList();
-                    var person = new Person
+                    var parameters = new Dictionary<string, string>
                     {
-                        LastName = columns[1].Attributes["value"].Value,
-                        WorkCode = columns[2].Attributes["value"].Value,
-                        Sex = comments[2].InnerHtml.Substring(index, comments[2].InnerLength - cdataLength),
-                        Status = comments[3].InnerHtml.Substring(index, comments[3].InnerLength - cdataLength),
-                        Manager = comments[4].InnerHtml.Substring(index, comments[4].InnerLength - cdataLength),
-                        JobTitle = comments[5].InnerHtml.Substring(index, comments[5].InnerLength - cdataLength),
-                        ID = int.Parse(columns[7].Attributes["value"].Value.Split('.')[0]),
-                        OrganizationID = dept.ID,
+                        {"tableInstanceId", ""},
+                        {"tableString", tableString},
+                        {"pageIndex", pageIndex.ToString()},
+                        {"orderBy", "dsporder"},
+                        {"otype", "ASC"},
+                        {"mode", "run"},
+                        {"customParams", ""},
+                        {"selectedstrs", ""},
+                        {"pageId", "Hrm:ResourceList"},
                     };
-                    people.Add(person);
+                    var delayTimes = 1;
+                    while (true)
+                    {
+                        resp = HttpWebRequestClient.Create(OAUrl.SplitPage).WithCookies(cookieContainer).WithParamters(parameters).GetResponseString();
+                        if (resp.StartsWith("<?xml")) break;
+
+                        Thread.Sleep(delayMilliseconds * (1 << delayTimes));
+                        if (delayTimes < 5)
+                            delayTimes++;
+                    }
+
+                    dom.LoadHtml(resp);
+
+                    foreach (HtmlNode row in dom.DocumentNode.SelectNodes("/table/row"))
+                    {
+                        var index = "<![CDATA[".Length;
+                        var cdataLength = "<![CDATA[]]>".Length;
+                        try
+                        {
+                            var columns = row.ChildNodes.Where(n => n.Name.Equals("col")).ToList();
+                            var comments = row.ChildNodes.Where(n => n.Name.Equals("#comment")).ToList();
+                            var person = new Person
+                            {
+                                LastName = columns[1].Attributes["value"].Value,
+                                WorkCode = columns[2].Attributes["value"].Value,
+                                Sex = comments[2].InnerHtml.Substring(index, comments[2].InnerLength - cdataLength),
+                                Status = comments[3].InnerHtml.Substring(index, comments[3].InnerLength - cdataLength),
+                                Manager = comments[4].InnerHtml.Substring(index, comments[4].InnerLength - cdataLength),
+                                ID = int.Parse(columns[7].Attributes["value"].Value.Split('.')[0]),
+                                OrganizationID = dept.ID,
+                            };
+
+                            if (comments.Count > 5)
+                                person.JobTitle = comments[5].InnerHtml.Substring(index, comments[5].InnerLength - cdataLength);
+
+                            people.Add(person);
+                        }
+                        catch (Exception ex)
+                        {
+                            logger.Error(ex, null, "解析成员失败");
+                            logger.Error(row);
+                        }
+                    }
+
+                    var root = dom.DocumentNode.SelectSingleNode("/table");
+                    var nowpage = int.Parse(root.Attributes["nowpage"].Value);
+                    var pagenum = int.Parse(root.Attributes["pagenum"].Value);
+
+                    pageIndex++;
+
+                    if (nowpage == pagenum || pageIndex > pagenum)
+                        break;
                 }
-
-                var root = dom.DocumentNode.SelectSingleNode("/table");
-                var nowpage = int.Parse(root.Attributes["nowpage"].Value);
-                var pagenum = int.Parse(root.Attributes["pagenum"].Value);
-
-                pageIndex++;
-
-                if (nowpage == pagenum || pageIndex > pagenum)
-                    break;
+            }
+            catch (Exception ex)
+            {
+                logger.Error(ex, null, "查询组织 {0}_{1} 下成员失败", dept.ID, dept.Title);
             }
 
             return people;

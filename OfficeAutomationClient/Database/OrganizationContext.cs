@@ -1,10 +1,6 @@
 ﻿using OfficeAutomationClient.Model;
 using SQLite.CodeFirst;
-using System;
-using System.Collections.Generic;
 using System.Data.Entity;
-using System.Linq;
-using System.Text;
 
 namespace OfficeAutomationClient.Database
 {
@@ -20,7 +16,10 @@ namespace OfficeAutomationClient.Database
 
         protected override void OnModelCreating(DbModelBuilder modelBuilder)
         {
-            var init = new SqliteCreateDatabaseIfNotExists<OrganizationContext>(modelBuilder);
+#if DEBUG
+            var initializer = new DbInitializer(modelBuilder);
+            System.Data.Entity.Database.SetInitializer(initializer);
+#endif
             modelBuilder.Entity<Organization>().ToTable("Organization");
             modelBuilder.Entity<Person>().ToTable("Person");
         }

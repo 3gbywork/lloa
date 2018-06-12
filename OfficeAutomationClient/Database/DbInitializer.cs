@@ -11,6 +11,8 @@ namespace OfficeAutomationClient.Database
         internal static void Initialize(OrganizationContext context)
         {
 #if DEBUG
+            if (!context.Database.CreateIfNotExists()) return;
+
             if (!context.Organizations.Any())
             {
                 var organizations = Business.Instance.GetOrganizations();

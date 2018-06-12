@@ -132,7 +132,7 @@ namespace OfficeAutomationClient.OA
             }
 
 #if DEBUG
-            using (var context = new OrganizationContext("data source=SqliteTest.db"))
+            using (var context = new OrganizationContext("organization.db"))
                 DbInitializer.Initialize(context);
 #endif
 

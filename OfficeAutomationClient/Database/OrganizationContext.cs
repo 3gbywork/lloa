@@ -1,4 +1,5 @@
 ﻿using OfficeAutomationClient.Model;
+using SQLite.CodeFirst;
 using System;
 using System.Collections.Generic;
 using System.Data.Entity;
@@ -19,6 +20,7 @@ namespace OfficeAutomationClient.Database
 
         protected override void OnModelCreating(DbModelBuilder modelBuilder)
         {
+            var init = new SqliteCreateDatabaseIfNotExists<OrganizationContext>(modelBuilder);
             modelBuilder.Entity<Organization>().ToTable("Organization");
             modelBuilder.Entity<Person>().ToTable("Person");
         }

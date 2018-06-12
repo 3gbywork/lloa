@@ -77,6 +77,9 @@
     <Reference Include="NLog, Version=4.0.0.0, Culture=neutral, PublicKeyToken=5120e14c03d0593c, processorArchitecture=MSIL">
       <HintPath>..\packages\NLog.4.5.6\lib\net40-client\NLog.dll</HintPath>
     </Reference>
+    <Reference Include="SQLite.CodeFirst, Version=1.5.1.25, Culture=neutral, PublicKeyToken=eb96ba0a78d831a7, processorArchitecture=MSIL">
+      <HintPath>..\packages\SQLite.CodeFirst.1.5.1.25\lib\net40\SQLite.CodeFirst.dll</HintPath>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.ComponentModel.DataAnnotations" />
     <Reference Include="System.Configuration" />
@@ -138,6 +141,8 @@
     </ApplicationDefinition>
     <Compile Include="Database\DbInitializer.cs" />
     <Compile Include="Database\OrganizationContext.cs" />
+    <Compile Include="Database\SQLiteConfiguration.cs" />
+    <Compile Include="Database\SQLiteConnectionFactory.cs" />
     <Compile Include="Helper\ConfigHelper.cs" />
     <Compile Include="Model\Organization.cs" />
     <Compile Include="Model\Person.cs" />

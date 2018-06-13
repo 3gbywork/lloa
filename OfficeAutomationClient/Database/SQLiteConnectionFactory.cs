@@ -15,7 +15,7 @@ namespace OfficeAutomationClient.Database
 {
     public class SQLiteConnectionFactory : IDbConnectionFactory
     {
-        private string _providerName;
+        private readonly string _providerName;
         public SQLiteConnectionFactory(string providerName)
         {
             _providerName = providerName;
@@ -24,11 +24,8 @@ namespace OfficeAutomationClient.Database
         private Func<string, DbProviderFactory> _providerFactoryCreator;
         internal Func<string, DbProviderFactory> ProviderFactory
         {
-            get { return _providerFactoryCreator ?? (DbConfiguration.DependencyResolver.GetService<DbProviderFactory>); }
-            set
-            {
-                _providerFactoryCreator = value;
-            }
+            get => _providerFactoryCreator ?? (DbConfiguration.DependencyResolver.GetService<DbProviderFactory>);
+            set => _providerFactoryCreator = value;
         }
 
         public DbConnection CreateConnection(string nameOrConnectionString)

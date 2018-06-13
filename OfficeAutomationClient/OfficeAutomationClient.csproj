@@ -38,8 +38,8 @@
     <Reference Include="CommonServiceLocator, Version=2.0.2.0, Culture=neutral, PublicKeyToken=489b6accfaf20ef0, processorArchitecture=MSIL">
       <HintPath>..\packages\CommonServiceLocator.2.0.2\lib\net40\CommonServiceLocator.dll</HintPath>
     </Reference>
-    <Reference Include="CommonUtility, Version=1.1.1.6, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\Net.Liap.CommonUtility.1.1.1.6\lib\net40\CommonUtility.dll</HintPath>
+    <Reference Include="CommonUtility, Version=1.1.2.7, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\Net.Liap.CommonUtility.1.1.2.7\lib\net40\CommonUtility.dll</HintPath>
     </Reference>
     <Reference Include="CredentialManagement, Version=1.0.2.0, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>..\packages\CredentialManagement.1.0.2\lib\net35\CredentialManagement.dll</HintPath>

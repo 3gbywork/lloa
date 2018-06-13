@@ -12,7 +12,7 @@ namespace OfficeAutomationClient.ViewModel
 {
     public class LoginViewModel : ViewModelBase
     {
-        private static ILogger logger = LogHelper.GetLogger<LoginViewModel>();
+        private static readonly ILogger Logger = LogHelper.GetLogger<LoginViewModel>();
 
         private List<string> _users;
         private string _user;
@@ -52,17 +52,17 @@ namespace OfficeAutomationClient.ViewModel
 
         public LoginViewModel()
         {
-            logger.Info("初始化登陆信息……");
+            Logger.Info("初始化登陆信息……");
             Users = Business.Instance.GetUsers();
             ValidateCodeImage = Business.Instance.GetValidateCodeImage();
 
-            User = ConfigHelper.GetString(ConfigKey.User);
-            RememberPwd = ConfigHelper.GetBoolean(ConfigKey.RememberPwd);
-            AutoLogin = ConfigHelper.GetBoolean(ConfigKey.AutoLogin);
+            User = ConfigHelper.Get<string>(ConfigKey.User);
+            RememberPwd = ConfigHelper.Get<bool>(ConfigKey.RememberPwd);
+            AutoLogin = ConfigHelper.Get<bool>(ConfigKey.AutoLogin);
 
             RefreshValidateCodeCommand = new RelayCommand(() =>
             {
-                logger.Info("获取验证码……");
+                Logger.Info("获取验证码……");
                 ValidateCodeImage = Business.Instance.GetValidateCodeImage();
             });
             LoginCommand = new RelayCommand<PasswordBox>((p) =>
@@ -71,7 +71,7 @@ namespace OfficeAutomationClient.ViewModel
                     Messenger.Default.Send("用户名或密码不能为空", TMessageToken.ShowConfirmation);
 
                 var rst = Business.Instance.Login(this, p.SecurePassword);
-                logger.Info($"登陆 {(rst ? "成功" : "失败")}");
+                Logger.Info($"登陆 {(rst ? "成功" : "失败")}");
                 if (rst)
                 {
                     Close(true);

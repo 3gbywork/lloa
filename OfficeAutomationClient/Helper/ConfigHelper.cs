@@ -1,50 +1,18 @@
-﻿using CommonUtility.Logging;
-using System;
-using System.Configuration;
+﻿using System;
+using CommonUtility.Config;
 
 namespace OfficeAutomationClient.Helper
 {
     class ConfigHelper
     {
-        private static ILogger logger = LogHelper.GetLogger<ConfigHelper>();
-
-        private static Configuration configuration = ConfigurationManager.OpenExeConfiguration(ConfigurationUserLevel.None);
-
-        public static string GetString(string key)
+        internal static T Get<T>(string key)
         {
-            try
-            {
-                return configuration.AppSettings.Settings[key].Value;
-            }
-            catch (Exception ex)
-            {
-                logger.Error($"获取配置异常 key:{key}, error:{ex}");
-                return string.Empty;
-            }
-        }
-
-        internal static bool GetBoolean(string key)
-        {
-            var value = GetString(key);
-            if (string.IsNullOrEmpty(value)) return false;
-
-            bool rst = false;
-            bool.TryParse(value, out rst);
-            return rst;
+            return Configurator.GetConfiguration(key, default(T));
         }
 
         internal static void Save(string key, string value)
         {
-            try
-            {
-                configuration.AppSettings.Settings.Remove(key);
-                configuration.AppSettings.Settings.Add(key, value);
-                configuration.Save();
-            }
-            catch (Exception ex)
-            {
-                logger.Error($"保存配置异常 key:{key}, value:{value}, error:{ex}");
-            }
+            Configurator.SetConfiguration(key, value);
         }
     }
 

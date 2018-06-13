@@ -4,23 +4,23 @@ namespace OfficeAutomationClient.Helper
 {
     public class LogHelper
     {
-        private static LogFactory logFactory;
+        private static readonly LogFactory LogFactory;
 
         static LogHelper()
         {
-            logFactory = new LogFactory();
-            logFactory.AddProvider(NLogProvider.Instance);
+            LogFactory = new LogFactory();
+            LogFactory.AddProvider(NLogProvider.Instance);
         }
 
         public static ILogger GetLogger<T>()
         {
             var type = typeof(T);
-            return logFactory.CreateLogger(type.FullName);
+            return LogFactory.CreateLogger(type.FullName);
         }
 
         public static void Shutdown()
         {
-            logFactory?.Dispose();
+            LogFactory?.Dispose();
         }
     }
 }

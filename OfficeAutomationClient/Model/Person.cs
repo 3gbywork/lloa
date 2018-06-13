@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Text;
 
@@ -9,6 +10,7 @@ namespace OfficeAutomationClient.Model
 {
     public class Person
     {
+        public int ID { get; set; }
         [DisplayName("姓名")]
         public string LastName { get; set; }
         [DisplayName("编号")]
@@ -22,7 +24,7 @@ namespace OfficeAutomationClient.Model
         [DisplayName("岗位")]
         public string JobTitle { get; set; }
         [DisplayName("显示顺序")]
-        public int ID { get; set; }
+        public int DspOrder { get; set; }
 
         public string OrganizationID { get; set; }
     }

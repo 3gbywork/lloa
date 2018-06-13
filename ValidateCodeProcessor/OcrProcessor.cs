@@ -7,9 +7,7 @@ namespace ValidateCodeProcessor
 {
     public class OcrProcessor : IDisposable
     {
-        private static OcrProcessor ocr = new OcrProcessor();
-
-        public static OcrProcessor Instance => ocr;
+        public static OcrProcessor Instance { get; } = new OcrProcessor();
 
         private OcrProcessor()
         {

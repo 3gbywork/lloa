@@ -24,34 +24,33 @@ namespace OfficeAutomationClient.OA
 {
     class Business : IDisposable
     {
-        private static ILogger logger = LogHelper.GetLogger<Business>();
+        private static readonly ILogger Logger = LogHelper.GetLogger<Business>();
 
         public static string AssemblyName = Assembly.GetExecutingAssembly().GetName().Name;
 
-        const string CredentialSetTarget = "OfficeAutomationClient";
-        const string DbFileName = "organization.db";
+        private const string CredentialSetTarget = "OfficeAutomationClient";
+        private const string DbFileName = "organization.db";
 
         private Business()
         {
-            HttpWebRequestClient.Create(OAUrl.Home).WithCookies(cookieContainer).GetResponseString();
-            var resp = HttpWebRequestClient.Create(OAUrl.Login).WithCookies(cookieContainer).GetResponseString();
+            HttpWebRequestClient.Create(OAUrl.Home).WithCookies(_cookieContainer).GetResponseString();
+            var resp = HttpWebRequestClient.Create(OAUrl.Login).WithCookies(_cookieContainer).GetResponseString();
 
-            title = TryGetTitle(resp);
+            _title = TryGetTitle(resp);
 
-            credentials = new CredentialSet(CredentialSetTarget);
-            credentials.Load();
+            _credentials = new CredentialSet(CredentialSetTarget);
+            _credentials.Load();
         }
 
-        private static Business business = new Business();
-        public static Business Instance => business;
+        public static Business Instance { get; } = new Business();
 
-        private CookieContainer cookieContainer = new CookieContainer();
-        private string validateCode;
-        private CredentialSet credentials;
+        private readonly CookieContainer _cookieContainer = new CookieContainer();
+        private string _validateCode;
+        private readonly CredentialSet _credentials;
 
-        private readonly string title;
-        private string userId;
-        private string companyName;
+        private readonly string _title;
+        private string _userId;
+        private string _companyName;
 
         private string TryGetTitle(string resp)
         {
@@ -61,7 +60,7 @@ namespace OfficeAutomationClient.OA
             }
             catch (Exception ex)
             {
-                logger.Error(ex, null, "解析 title 出错，resp：{0}", resp);
+                Logger.Error(ex, null, "解析 title 出错，resp：{0}", resp);
                 return "OA";
             }
         }
@@ -70,29 +69,29 @@ namespace OfficeAutomationClient.OA
         {
             try
             {
-                var resp = HttpWebRequestClient.Create(OAUrl.SysRemind).WithCookies(cookieContainer).GetResponseString();
+                var resp = HttpWebRequestClient.Create(OAUrl.SysRemind).WithCookies(_cookieContainer).GetResponseString();
                 return Regex.Match(resp, "companyname = \"(.+)\"").Value.Split('\"')[1];
             }
             catch (Exception ex)
             {
-                logger.Error(ex, null, "解析 companyname 出错");
+                Logger.Error(ex, null, "解析 companyname 出错");
                 return "Company";
             }
         }
 
         internal ImageSource GetValidateCodeImage()
         {
-            var bitmap = HttpWebRequestClient.Create(OAUrl.ValidateCode).WithCookies(cookieContainer).GetResponseStream().ToBitmap();
+            var bitmap = HttpWebRequestClient.Create(OAUrl.ValidateCode).WithCookies(_cookieContainer).GetResponseStream().ToBitmap();
 
             var imageSource = bitmap.ToImageSource();
-            validateCode = bitmap.Gray().DeNoise().Binarize().Text().Trim();
+            _validateCode = bitmap.Gray().DeNoise().Binarize().Text().Trim();
 
             return imageSource;
         }
 
         internal string GetValidateCode()
         {
-            return validateCode;
+            return _validateCode;
         }
 
         public void Dispose()
@@ -116,17 +115,17 @@ namespace OfficeAutomationClient.OA
                 {"submit", "登录" },
                 {"validatecode", login.ValidateCode },
             };
-            var resp = HttpWebRequestClient.Create(OAUrl.VerifyLogin).WithCookies(cookieContainer).WithParamters(parameters).GetResponseString();
+            var resp = HttpWebRequestClient.Create(OAUrl.VerifyLogin).WithCookies(_cookieContainer).WithParamters(parameters).GetResponseString();
             if (!resp.Contains("logincookiecheck")) return false;
 
-            userId = cookieContainer.GetCookies(new Uri(OAUrl.Home))["loginidweaver"].Value;
-            companyName = GetCompanyName();
+            _userId = _cookieContainer.GetCookies(new Uri(OAUrl.Home))["loginidweaver"].Value;
+            _companyName = GetCompanyName();
 
             if (login.RememberPwd)
             {
                 var credential = new Credential(login.User, password.CreateString(), CredentialSetTarget, CredentialType.Generic) { PersistanceType = PersistanceType.LocalComputer };
                 credential.Save();
-                credentials.Load();
+                _credentials.Load();
 
                 ConfigHelper.Save(ConfigKey.User, login.User);
                 ConfigHelper.Save(ConfigKey.RememberPwd, login.RememberPwd.ToString());
@@ -149,7 +148,7 @@ namespace OfficeAutomationClient.OA
                 {"cmd", "initChart"},
                 {"arg0", ""},
                 {"arg1", "10000"},
-                {"arg2", companyName},
+                {"arg2", _companyName},
                 {"arg3", "true"},
                 {"arg4", "8"},
                 {"arg5", ""},
@@ -162,12 +161,12 @@ namespace OfficeAutomationClient.OA
             };
             try
             {
-                var resp = HttpWebRequestClient.Create(OAUrl.Organization).WithCookies(cookieContainer).WithParamters(parameters).GetResponseString();
+                var resp = HttpWebRequestClient.Create(OAUrl.Organization).WithCookies(_cookieContainer).WithParamters(parameters).GetResponseString();
                 return JsonConvert.DeserializeObject<Organizations>(resp);
             }
             catch (Exception ex)
             {
-                logger.Error(ex, null, "获取 {0} 组织结构出错", companyName);
+                Logger.Error(ex, null, "获取 {0} 组织结构出错", _companyName);
                 return default(Organizations);
             }
         }
@@ -179,7 +178,7 @@ namespace OfficeAutomationClient.OA
 
             try
             {
-                var resp = HttpWebRequestClient.Create($"{OAUrl.HrmResourceList}{dept.ID.Substring(1)}").WithCookies(cookieContainer).GetResponseString();
+                var resp = HttpWebRequestClient.Create($"{OAUrl.HrmResourceList}{dept.ID.Substring(1)}").WithCookies(_cookieContainer).GetResponseString();
                 var tableString = Regex.Match(resp, "__tableStringKey__='(.+)'").Value.Split('\'')[1];
 
                 var dom = new HtmlDocument();
@@ -203,7 +202,7 @@ namespace OfficeAutomationClient.OA
                     var delayTimes = 1;
                     while (true)
                     {
-                        resp = HttpWebRequestClient.Create(OAUrl.SplitPage).WithCookies(cookieContainer).WithParamters(parameters).GetResponseString();
+                        resp = HttpWebRequestClient.Create(OAUrl.SplitPage).WithCookies(_cookieContainer).WithParamters(parameters).GetResponseString();
                         if (resp.StartsWith("<?xml")) break;
 
                         Thread.Sleep(delayMilliseconds * (1 << delayTimes));
@@ -228,7 +227,7 @@ namespace OfficeAutomationClient.OA
                                 Sex = comments[2].InnerHtml.Substring(index, comments[2].InnerLength - cdataLength),
                                 Status = comments[3].InnerHtml.Substring(index, comments[3].InnerLength - cdataLength),
                                 Manager = comments[4].InnerHtml.Substring(index, comments[4].InnerLength - cdataLength),
-                                ID = int.Parse(columns[7].Attributes["value"].Value.Split('.')[0]),
+                                DspOrder = int.Parse(columns[7].Attributes["value"].Value.Split('.')[0]),
                                 OrganizationID = dept.ID,
                             };
 
@@ -239,8 +238,8 @@ namespace OfficeAutomationClient.OA
                         }
                         catch (Exception ex)
                         {
-                            logger.Error(ex, null, "解析成员失败");
-                            logger.Error(row);
+                            Logger.Error(ex, null, "解析成员失败");
+                            Logger.Error(row);
                         }
                     }
 
@@ -256,7 +255,7 @@ namespace OfficeAutomationClient.OA
             }
             catch (Exception ex)
             {
-                logger.Error(ex, null, "查询组织 {0}_{1} 下成员失败", dept.ID, dept.Title);
+                Logger.Error(ex, null, "查询组织 {0}_{1} 下成员失败", dept.ID, dept.Title);
             }
 
             return people;
@@ -270,29 +269,29 @@ namespace OfficeAutomationClient.OA
             var parameters = new Dictionary<string, string>
             {
                 {"currentdate", date },
-                {"resourceId", userId },
+                {"resourceId", _userId },
                 {"departmentId", "86" },
                 {"rstr",RandomEx.NextString(10) },
                 {"subCompanyId", "1" },
             };
-            var attdata = HttpWebRequestClient.Create(OAUrl.MonthAttData).WithCookies(cookieContainer).WithParamters(parameters).GetResponseString();
+            var attdata = HttpWebRequestClient.Create(OAUrl.MonthAttData).WithCookies(_cookieContainer).WithParamters(parameters).GetResponseString();
         }
 
         internal List<string> GetUsers()
         {
-            return credentials.Select(c => c.Username).ToList();
+            return _credentials.Select(c => c.Username).ToList();
         }
 
         internal SecureString QueryPassword(string username)
         {
-            var user = credentials.Find(c => c.Username.Equals(username));
+            var user = _credentials.Find(c => c.Username.Equals(username));
             if (null != user) return user.SecurePassword;
             return new SecureString();
         }
 
         internal string GetTitle()
         {
-            return title;
+            return _title;
         }
     }
 }

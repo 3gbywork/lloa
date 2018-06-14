@@ -16,7 +16,7 @@ namespace OfficeAutomationClient.Database
 
         protected override void OnModelCreating(DbModelBuilder modelBuilder)
         {
-#if DEBUG
+#if INIT_ORGANIZATION_DB
             var initializer = new DbInitializer(modelBuilder);
             System.Data.Entity.Database.SetInitializer(initializer);
 #endif

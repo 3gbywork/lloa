@@ -12,6 +12,8 @@ namespace OfficeAutomationClient.OA
         public const string VerifyLogin = Home + "/login/verifylogin.jsp";
         public const string SysRemind = Home + "/system/SysRemind.jsp";
 
+        public const string Logout = Home + "/login/Logout.jsp";
+
         public const string ValidateCode = Home + "/weaver/weaver.file.MakeValidateCode";
 
         public const string Organization = Home + "/js/hrm/getdata.jsp";

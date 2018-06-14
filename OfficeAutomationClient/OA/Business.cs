@@ -15,6 +15,8 @@ using System.Linq;
 using System.Net;
 using System.Reflection;
 using System.Security;
+using System.Security.Cryptography;
+using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Windows.Media;
@@ -38,7 +40,7 @@ namespace OfficeAutomationClient.OA
 
             _title = TryGetTitle(resp);
 
-            _credentials = new CredentialSet(CredentialSetTarget);
+            _credentials = new CredentialSet();
             _credentials.Load();
         }
 
@@ -96,6 +98,7 @@ namespace OfficeAutomationClient.OA
 
         public void Dispose()
         {
+            Logout();
             OcrProcessor.Instance.Dispose();
             LogHelper.Shutdown();
         }
@@ -123,16 +126,14 @@ namespace OfficeAutomationClient.OA
 
             if (login.RememberPwd)
             {
-                var credential = new Credential(login.User, password.CreateString(), CredentialSetTarget, CredentialType.Generic) { PersistanceType = PersistanceType.LocalComputer };
-                credential.Save();
-                _credentials.Load();
+                SaveOrUpdateCredential(login.User, password);
 
                 ConfigHelper.Save(ConfigKey.User, login.User);
                 ConfigHelper.Save(ConfigKey.RememberPwd, login.RememberPwd.ToString());
                 ConfigHelper.Save(ConfigKey.AutoLogin, login.AutoLogin.ToString());
             }
 
-#if DEBUG
+#if INIT_ORGANIZATION_DB
             using (var context = new OrganizationContext(DbFileName))
                 context.Database.Initialize(true);
 #endif
@@ -140,7 +141,29 @@ namespace OfficeAutomationClient.OA
             return true;
         }
 
-#if DEBUG
+        internal void Logout()
+        {
+            HttpWebRequestClient.Create(OAUrl.Logout).WithCookies(_cookieContainer).GetResponseString();
+        }
+
+        private void SaveOrUpdateCredential(string user, SecureString password)
+        {
+            var credential = _credentials.Find(c => string.Equals(c.Username, user));
+            if (null == credential)
+            {
+                credential = new Credential(user)
+                {
+                    PersistanceType = PersistanceType.LocalComputer,
+                    Type = CredentialType.Generic,
+                    Target = $"{CredentialSetTarget}:{Guid.NewGuid()}",
+                };
+            }
+            credential.Password = ProtectedData.Protect(Encoding.UTF8.GetBytes(password.CreateString()), null, DataProtectionScope.CurrentUser).ToBase64String();
+            credential.Save();
+            _credentials.Load();
+        }
+
+#if INIT_ORGANIZATION_DB
         internal Organizations GetOrganizations()
         {
             var parameters = new Dictionary<string, string>
@@ -209,7 +232,8 @@ namespace OfficeAutomationClient.OA
                         if (delayTimes < 5)
                             delayTimes++;
                     }
-
+                    // TODO
+                    // use XmlDocument parse
                     dom.LoadHtml(resp);
 
                     foreach (HtmlNode row in dom.DocumentNode.SelectNodes("/table/row"))
@@ -218,11 +242,11 @@ namespace OfficeAutomationClient.OA
                         var cdataLength = "<![CDATA[]]>".Length;
                         try
                         {
-                            var columns = row.ChildNodes.Where(n => n.Name.Equals("col")).ToList();
+                            var columns = row.ChildNodes.Where(n => n.Name.Equals("col")).Skip(1).ToList();
                             var comments = row.ChildNodes.Where(n => n.Name.Equals("#comment")).ToList();
                             var person = new Person
                             {
-                                LastName = columns[1].Attributes["value"].Value,
+                                LastName = columns.Find(c => c.Attributes.Contains("lastname"))?.Attributes["value"].Value,
                                 WorkCode = columns[2].Attributes["value"].Value,
                                 Sex = comments[2].InnerHtml.Substring(index, comments[2].InnerLength - cdataLength),
                                 Status = comments[3].InnerHtml.Substring(index, comments[3].InnerLength - cdataLength),
@@ -279,13 +303,23 @@ namespace OfficeAutomationClient.OA
 
         internal List<string> GetUsers()
         {
-            return _credentials.Select(c => c.Username).ToList();
+            return _credentials.Where(c => c.Target.StartsWith(CredentialSetTarget)).Select(c => c.Username).ToList();
         }
 
         internal SecureString QueryPassword(string username)
         {
-            var user = _credentials.Find(c => c.Username.Equals(username));
-            if (null != user) return user.SecurePassword;
+            var user = _credentials.Find(c => c.Target.StartsWith(CredentialSetTarget) && c.Username.Equals(username));
+            if (null != user)
+            {
+                try
+                {
+                    return ProtectedData.Unprotect(user.SecurePassword.CreateString().FromBase64String(), null, DataProtectionScope.CurrentUser).ToString(Encoding.UTF8).CreateSecureString();
+                }
+                catch (Exception ex)
+                {
+                    Logger.Error(ex, null, "解析 {0} 的密码失败", username);
+                }
+            }
             return new SecureString();
         }
 

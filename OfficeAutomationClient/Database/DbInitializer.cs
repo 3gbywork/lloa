@@ -15,7 +15,7 @@ namespace OfficeAutomationClient.Database
 
         protected override void Seed(OrganizationContext context)
         {
-#if DEBUG
+#if INIT_ORGANIZATION_DB
             while (true)
             {
                 var org = Business.Instance.GetOrganizations();

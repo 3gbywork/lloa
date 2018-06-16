@@ -3,7 +3,6 @@ using OfficeAutomationClient.OA;
 using SQLite.CodeFirst;
 using System.Data.Entity;
 using System.Linq;
-using System.Threading;
 
 namespace OfficeAutomationClient.Database
 {
@@ -16,20 +15,9 @@ namespace OfficeAutomationClient.Database
         protected override void Seed(OrganizationContext context)
         {
 #if INIT_ORGANIZATION_DB
-            while (true)
-            {
-                var org = Business.Instance.GetOrganizations();
-                if (null == org || org.Count == 0)
-                {
-                    Thread.Sleep(500);
-                    continue;
-                }
-
-                context.Set<Organization>().AddRange(org);
-                context.SaveChanges();
-                break;
-            }
-
+            var org = Business.Instance.GetOrganizations();
+            context.Set<Organization>().AddRange(org);
+            context.SaveChanges();
 
             foreach (var dept in context.Organizations.Where(o => o.Type == Model.OrganizationType.Dept && o.Num > 0))
             {

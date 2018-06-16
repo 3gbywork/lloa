@@ -25,6 +25,7 @@ namespace OfficeAutomationClient.Model
         public string JobTitle { get; set; }
         [DisplayName("显示顺序")]
         public int DspOrder { get; set; }
+        public int RequestID { get; set; }
 
         public string OrganizationID { get; set; }
     }

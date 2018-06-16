@@ -3,14 +3,11 @@ using CommonUtility.Http;
 using CommonUtility.Logging;
 using CommonUtility.Rand;
 using CredentialManagement;
-using HtmlAgilityPack;
-using Newtonsoft.Json;
-using OfficeAutomationClient.Database;
 using OfficeAutomationClient.Helper;
-using OfficeAutomationClient.Model;
 using OfficeAutomationClient.ViewModel;
 using System;
 using System.Collections.Generic;
+using System.Drawing;
 using System.Linq;
 using System.Net;
 using System.Reflection;
@@ -18,25 +15,44 @@ using System.Security;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
-using System.Threading;
 using System.Windows.Media;
 using ValidateCodeProcessor;
 
+#if INIT_ORGANIZATION_DB
+using Newtonsoft.Json;
+using OfficeAutomationClient.Database;
+using OfficeAutomationClient.Model;
+using Polly;
+using System.IO;
+using System.Xml;
+using System.Xml.Linq;
+using System.Xml.XPath;
+#endif
+
 namespace OfficeAutomationClient.OA
 {
-    class Business : IDisposable
+    internal class Business : IDisposable
     {
+        private const string DefaultTitle = "OA";
+        private const string DefaultCompany = "办公自动化系统";
+        private const string CredentialSetTarget = "OfficeAutomationClient";
+        private const string DbFileName = "organization.db";
         private static readonly ILogger Logger = LogHelper.GetLogger<Business>();
 
         public static string AssemblyName = Assembly.GetExecutingAssembly().GetName().Name;
 
-        private const string CredentialSetTarget = "OfficeAutomationClient";
-        private const string DbFileName = "organization.db";
+        private readonly CookieContainer _cookieContainer = new CookieContainer();
+        private readonly CredentialSet _credentials;
+
+        private readonly string _title;
+        private string _companyName;
+        private string _userId;
+        private string _validateCode;
 
         private Business()
         {
-            HttpWebRequestClient.Create(OAUrl.Home).WithCookies(_cookieContainer).GetResponseString();
-            var resp = HttpWebRequestClient.Create(OAUrl.Login).WithCookies(_cookieContainer).GetResponseString();
+            TryGetResponseString(OAUrl.Home);
+            var resp = TryGetResponseString(OAUrl.Login);
 
             _title = TryGetTitle(resp);
 
@@ -46,16 +62,43 @@ namespace OfficeAutomationClient.OA
 
         public static Business Instance { get; } = new Business();
 
-        private readonly CookieContainer _cookieContainer = new CookieContainer();
-        private string _validateCode;
-        private readonly CredentialSet _credentials;
-
-        private readonly string _title;
-        private string _userId;
-        private string _companyName;
-
-        private string TryGetTitle(string resp)
+        public void Dispose()
         {
+            Logout();
+            OcrProcessor.Instance.Dispose();
+            LogHelper.Shutdown();
+        }
+
+        private string TryGetResponseString(string url, Dictionary<string, string> parameters = null)
+        {
+            try
+            {
+                return HttpWebRequestClient.Create(url).WithCookies(_cookieContainer).WithParamters(parameters ?? new Dictionary<string, string>())
+                    .GetResponseString();
+            }
+            catch (Exception ex)
+            {
+                Logger.Error(ex, null, "访问 {0} 出错", url);
+                return default(string);
+            }
+        }
+
+        private Bitmap TryGetResponseImage(string url)
+        {
+            try
+            {
+                return HttpWebRequestClient.Create(url).WithCookies(_cookieContainer).GetResponseStream().ToBitmap();
+            }
+            catch (Exception ex)
+            {
+                Logger.Error(ex, null, "获取 {0} 图片出错", url);
+                return default(Bitmap);
+            }
+        }
+
+        private static string TryGetTitle(string resp)
+        {
+            if (string.IsNullOrEmpty(resp)) return DefaultTitle;
             try
             {
                 return Regex.Match(resp, "document.title='(.+)'").Value.Split('\'')[1];
@@ -63,27 +106,27 @@ namespace OfficeAutomationClient.OA
             catch (Exception ex)
             {
                 Logger.Error(ex, null, "解析 title 出错，resp：{0}", resp);
-                return "OA";
+                return DefaultTitle;
             }
         }
 
-        private string GetCompanyName()
+        private static string TryGetCompanyName(string resp)
         {
+            if (string.IsNullOrEmpty(resp)) return DefaultCompany;
             try
             {
-                var resp = HttpWebRequestClient.Create(OAUrl.SysRemind).WithCookies(_cookieContainer).GetResponseString();
                 return Regex.Match(resp, "companyname = \"(.+)\"").Value.Split('\"')[1];
             }
             catch (Exception ex)
             {
                 Logger.Error(ex, null, "解析 companyname 出错");
-                return "Company";
+                return DefaultCompany;
             }
         }
 
         internal ImageSource GetValidateCodeImage()
         {
-            var bitmap = HttpWebRequestClient.Create(OAUrl.ValidateCode).WithCookies(_cookieContainer).GetResponseStream().ToBitmap();
+            var bitmap = TryGetResponseImage(OAUrl.ValidateCode);
 
             var imageSource = bitmap.ToImageSource();
             _validateCode = bitmap.Gray().DeNoise().Binarize().Text().Trim();
@@ -96,33 +139,26 @@ namespace OfficeAutomationClient.OA
             return _validateCode;
         }
 
-        public void Dispose()
-        {
-            Logout();
-            OcrProcessor.Instance.Dispose();
-            LogHelper.Shutdown();
-        }
-
         internal bool Login(LoginViewModel login, SecureString password)
         {
             var parameters = new Dictionary<string, string>
             {
-                {"loginfile","/wui/theme/ecology8/page/login.jsp?templateId=3&logintype=1&gopage=" },
-                {"logintype", "1" },
-                {"fontName", "微软雅黑" },
-                {"formmethod", "post" },
-                {"isie", "false" },
-                {"islanguid", "7" },
+                {"loginfile", "/wui/theme/ecology8/page/login.jsp?templateId=3&logintype=1&gopage="},
+                {"logintype", "1"},
+                {"fontName", "微软雅黑"},
+                {"formmethod", "post"},
+                {"isie", "false"},
+                {"islanguid", "7"},
                 {"loginid", login.User},
-                {"userpassword", password.CreateString() },
-                {"submit", "登录" },
-                {"validatecode", login.ValidateCode },
+                {"userpassword", password.CreateString()},
+                {"submit", "登录"},
+                {"validatecode", login.ValidateCode}
             };
-            var resp = HttpWebRequestClient.Create(OAUrl.VerifyLogin).WithCookies(_cookieContainer).WithParamters(parameters).GetResponseString();
+            var resp = TryGetResponseString(OAUrl.VerifyLogin, parameters);
             if (!resp.Contains("logincookiecheck")) return false;
 
             _userId = _cookieContainer.GetCookies(new Uri(OAUrl.Home))["loginidweaver"].Value;
-            _companyName = GetCompanyName();
+            _companyName = TryGetCompanyName(TryGetResponseString(OAUrl.SysRemind));
 
             if (login.RememberPwd)
             {
@@ -135,7 +171,9 @@ namespace OfficeAutomationClient.OA
 
 #if INIT_ORGANIZATION_DB
             using (var context = new OrganizationContext(DbFileName))
+            {
                 context.Database.Initialize(true);
+            }
 #endif
 
             return true;
@@ -143,27 +181,72 @@ namespace OfficeAutomationClient.OA
 
         internal void Logout()
         {
-            HttpWebRequestClient.Create(OAUrl.Logout).WithCookies(_cookieContainer).GetResponseString();
+            TryGetResponseString(OAUrl.Logout);
         }
 
         private void SaveOrUpdateCredential(string user, SecureString password)
         {
-            var credential = _credentials.Find(c => string.Equals(c.Username, user));
-            if (null == credential)
+            var credential = _credentials.Find(c => string.Equals(c.Username, user)) ?? new Credential(user)
             {
-                credential = new Credential(user)
-                {
-                    PersistanceType = PersistanceType.LocalComputer,
-                    Type = CredentialType.Generic,
-                    Target = $"{CredentialSetTarget}:{Guid.NewGuid()}",
-                };
-            }
-            credential.Password = ProtectedData.Protect(Encoding.UTF8.GetBytes(password.CreateString()), null, DataProtectionScope.CurrentUser).ToBase64String();
+                PersistanceType = PersistanceType.LocalComputer,
+                Type = CredentialType.Generic,
+                Target = $"{CredentialSetTarget}:{Guid.NewGuid()}"
+            };
+            credential.Password = ProtectedData
+                .Protect(Encoding.UTF8.GetBytes(password.CreateString()), null, DataProtectionScope.CurrentUser)
+                .ToBase64String();
             credential.Save();
             _credentials.Load();
         }
 
+        internal void GetAttendance(string date)
+        {
+            //var resp = HttpWebRequestClient.Create(OAUrl.MonthAttDetail).WithCookies(cookieContainer).GetResponseString();
+
+            var parameters = new Dictionary<string, string>
+            {
+                {"currentdate", date},
+                {"resourceId", _userId},
+                {"departmentId", "86"},
+                {"rstr", RandomEx.NextString(10)},
+                {"subCompanyId", "1"}
+            };
+            var attdata = TryGetResponseString(OAUrl.MonthAttData, parameters);
+        }
+
+        internal List<string> GetUsers()
+        {
+            return _credentials.Where(c => c.Target.StartsWith(CredentialSetTarget)).Select(c => c.Username).ToList();
+        }
+
+        internal SecureString QueryPassword(string username)
+        {
+            var user = _credentials.Find(c => c.Target.StartsWith(CredentialSetTarget) && c.Username.Equals(username));
+            if (null != user)
+            {
+                try
+                {
+                    return ProtectedData
+                        .Unprotect(user.SecurePassword.CreateString().FromBase64String(), null,
+                            DataProtectionScope.CurrentUser).ToString(Encoding.UTF8).CreateSecureString();
+                }
+                catch (Exception ex)
+                {
+                    Logger.Error(ex, null, "解析 {0} 的密码失败", username);
+                }
+            }
+
+            return new SecureString();
+        }
+
+        internal string GetTitle()
+        {
+            return _title;
+        }
+
 #if INIT_ORGANIZATION_DB
+        private readonly Func<int, TimeSpan> _delayDurationProvider = attempt => TimeSpan.FromSeconds(Math.Min(5, Math.Pow(2, attempt / 2)));
+        
         internal Organizations GetOrganizations()
         {
             var parameters = new Dictionary<string, string>
@@ -180,18 +263,13 @@ namespace OfficeAutomationClient.OA
                 {"arg8", ""},
                 {"arg9", ""},
                 {"arg10", ""},
-                {"arg11", ";;P"},
+                {"arg11", ";;P"}
             };
-            try
-            {
-                var resp = HttpWebRequestClient.Create(OAUrl.Organization).WithCookies(_cookieContainer).WithParamters(parameters).GetResponseString();
-                return JsonConvert.DeserializeObject<Organizations>(resp);
-            }
-            catch (Exception ex)
-            {
-                Logger.Error(ex, null, "获取 {0} 组织结构出错", _companyName);
-                return default(Organizations);
-            }
+
+            return Policy<Organizations>.HandleResult(r => null == r || r.Count == 0)
+                   .Or<Exception>()
+                   .WaitAndRetryForever(_delayDurationProvider)
+                   .Execute(() => JsonConvert.DeserializeObject<Organizations>(TryGetResponseString(OAUrl.Organization, parameters)));
         }
 
         internal People GetPeople(Organization dept)
@@ -201,13 +279,10 @@ namespace OfficeAutomationClient.OA
 
             try
             {
-                var resp = HttpWebRequestClient.Create($"{OAUrl.HrmResourceList}{dept.ID.Substring(1)}").WithCookies(_cookieContainer).GetResponseString();
+                var resp = TryGetResponseString($"{OAUrl.HrmResourceList}{dept.ID.Substring(1)}");
                 var tableString = Regex.Match(resp, "__tableStringKey__='(.+)'").Value.Split('\'')[1];
 
-                var dom = new HtmlDocument();
-
                 var pageIndex = 1;
-                const int delayMilliseconds = 100;
                 while (true)
                 {
                     var parameters = new Dictionary<string, string>
@@ -220,61 +295,30 @@ namespace OfficeAutomationClient.OA
                         {"mode", "run"},
                         {"customParams", ""},
                         {"selectedstrs", ""},
-                        {"pageId", "Hrm:ResourceList"},
+                        {"pageId", "Hrm:ResourceList"}
                     };
-                    var delayTimes = 1;
-                    while (true)
-                    {
-                        resp = HttpWebRequestClient.Create(OAUrl.SplitPage).WithCookies(_cookieContainer).WithParamters(parameters).GetResponseString();
-                        if (resp.StartsWith("<?xml")) break;
 
-                        Thread.Sleep(delayMilliseconds * (1 << delayTimes));
-                        if (delayTimes < 5)
-                            delayTimes++;
-                    }
-                    // TODO
-                    // use XmlDocument parse
-                    dom.LoadHtml(resp);
+                    resp = Policy<string>.HandleResult(r => !(!string.IsNullOrEmpty(r) && r.StartsWith("<?xml")))
+                           .WaitAndRetryForever(_delayDurationProvider)
+                           .Execute(() => TryGetResponseString(OAUrl.SplitPage, parameters));
 
-                    foreach (HtmlNode row in dom.DocumentNode.SelectNodes("/table/row"))
+                    using (var reader = new StringReader(resp))
                     {
-                        var index = "<![CDATA[".Length;
-                        var cdataLength = "<![CDATA[]]>".Length;
-                        try
+                        var xElement = XElement.Load(reader);
+                        foreach (var person in ParsePerson(xElement))
                         {
-                            var columns = row.ChildNodes.Where(n => n.Name.Equals("col")).Skip(1).ToList();
-                            var comments = row.ChildNodes.Where(n => n.Name.Equals("#comment")).ToList();
-                            var person = new Person
-                            {
-                                LastName = columns.Find(c => c.Attributes.Contains("lastname"))?.Attributes["value"].Value,
-                                WorkCode = columns[2].Attributes["value"].Value,
-                                Sex = comments[2].InnerHtml.Substring(index, comments[2].InnerLength - cdataLength),
-                                Status = comments[3].InnerHtml.Substring(index, comments[3].InnerLength - cdataLength),
-                                Manager = comments[4].InnerHtml.Substring(index, comments[4].InnerLength - cdataLength),
-                                DspOrder = int.Parse(columns[7].Attributes["value"].Value.Split('.')[0]),
-                                OrganizationID = dept.ID,
-                            };
-
-                            if (comments.Count > 5)
-                                person.JobTitle = comments[5].InnerHtml.Substring(index, comments[5].InnerLength - cdataLength);
-
+                            person.OrganizationID = dept.ID;
                             people.Add(person);
                         }
-                        catch (Exception ex)
-                        {
-                            Logger.Error(ex, null, "解析成员失败");
-                            Logger.Error(row);
-                        }
+
+                        var nowpage = int.Parse(xElement.Attribute("nowpage").Value);
+                        var pagenum = int.Parse(xElement.Attribute("pagenum").Value);
+
+                        pageIndex++;
+
+                        if (nowpage == pagenum || pageIndex > pagenum)
+                            break;
                     }
-
-                    var root = dom.DocumentNode.SelectSingleNode("/table");
-                    var nowpage = int.Parse(root.Attributes["nowpage"].Value);
-                    var pagenum = int.Parse(root.Attributes["pagenum"].Value);
-
-                    pageIndex++;
-
-                    if (nowpage == pagenum || pageIndex > pagenum)
-                        break;
                 }
             }
             catch (Exception ex)
@@ -284,48 +328,62 @@ namespace OfficeAutomationClient.OA
 
             return people;
         }
-#endif
 
-        internal void GetAttendance(string date)
+        private IEnumerable<Person> ParsePerson(XElement xElement)
         {
-            //var resp = HttpWebRequestClient.Create(OAUrl.MonthAttDetail).WithCookies(cookieContainer).GetResponseString();
-
-            var parameters = new Dictionary<string, string>
+            var rows = xElement.XPathSelectElements("/row");
+            foreach (var row in rows)
             {
-                {"currentdate", date },
-                {"resourceId", _userId },
-                {"departmentId", "86" },
-                {"rstr",RandomEx.NextString(10) },
-                {"subCompanyId", "1" },
-            };
-            var attdata = HttpWebRequestClient.Create(OAUrl.MonthAttData).WithCookies(_cookieContainer).WithParamters(parameters).GetResponseString();
-        }
-
-        internal List<string> GetUsers()
-        {
-            return _credentials.Where(c => c.Target.StartsWith(CredentialSetTarget)).Select(c => c.Username).ToList();
-        }
-
-        internal SecureString QueryPassword(string username)
-        {
-            var user = _credentials.Find(c => c.Target.StartsWith(CredentialSetTarget) && c.Username.Equals(username));
-            if (null != user)
-            {
-                try
+                var person = new Person();
+                foreach (var element in row.Nodes().Where(n => n.NodeType == XmlNodeType.Element).Cast<XElement>())
                 {
-                    return ProtectedData.Unprotect(user.SecurePassword.CreateString().FromBase64String(), null, DataProtectionScope.CurrentUser).ToString(Encoding.UTF8).CreateSecureString();
+                    if (string.Equals(element.Name.LocalName, "col"))
+                    {
+                        var attributeDictionary = element.Attributes()
+                            .ToDictionary(a => a.Name.LocalName, a => a.Value);
+                        if (attributeDictionary.TryGetValue("column", out var colValue))
+                        {
+                            attributeDictionary.TryGetValue("value", out var value);
+                            try
+                            {
+                                switch (colValue)
+                                {
+                                    case "lastname":
+                                        person.LastName = value;
+                                        person.RequestID = int.Parse(Regex.Match(element.Value, "\\((.+)\\)")
+                                            .Value.Trim('(', ')'));
+                                        break;
+                                    case "workcode":
+                                        person.WorkCode = value;
+                                        break;
+                                    case "sex":
+                                        person.Sex = element.Value;
+                                        break;
+                                    case "status":
+                                        person.Status = element.Value;
+                                        break;
+                                    case "managerid":
+                                        person.Manager = element.Value;
+                                        break;
+                                    case "jobtitle":
+                                        person.JobTitle = element.Value;
+                                        break;
+                                    case "dsporder":
+                                        person.DspOrder = int.Parse(value.Split('.')[0]);
+                                        break;
+                                }
+                            }
+                            catch (Exception ex)
+                            {
+                                Logger.Error(ex, null, "解析 col:{0} 出错, value:{1}", colValue, value);
+                            }
+                        }
+                    }
                 }
-                catch (Exception ex)
-                {
-                    Logger.Error(ex, null, "解析 {0} 的密码失败", username);
-                }
+
+                yield return person;
             }
-            return new SecureString();
         }
-
-        internal string GetTitle()
-        {
-            return _title;
-        }
+#endif
     }
 }

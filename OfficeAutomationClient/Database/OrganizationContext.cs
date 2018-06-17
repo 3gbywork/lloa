@@ -1,5 +1,4 @@
 ﻿using OfficeAutomationClient.Model;
-using SQLite.CodeFirst;
 using System.Data.Entity;
 
 namespace OfficeAutomationClient.Database
@@ -13,6 +12,7 @@ namespace OfficeAutomationClient.Database
 
         public DbSet<Organization> Organizations { get; set; }
         public DbSet<Person> People { get; set; }
+        public DbSet<PersonalDetail> PersonalDetails { get; set; }
 
         protected override void OnModelCreating(DbModelBuilder modelBuilder)
         {
@@ -22,6 +22,7 @@ namespace OfficeAutomationClient.Database
 #endif
             modelBuilder.Entity<Organization>().ToTable("Organization");
             modelBuilder.Entity<Person>().ToTable("Person");
+            modelBuilder.Entity<PersonalDetail>().ToTable("PersonalDerail");
         }
     }
 }

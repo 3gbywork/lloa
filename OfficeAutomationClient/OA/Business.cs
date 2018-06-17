@@ -3,11 +3,17 @@ using CommonUtility.Http;
 using CommonUtility.Logging;
 using CommonUtility.Rand;
 using CredentialManagement;
+using HtmlAgilityPack;
+using Newtonsoft.Json;
+using OfficeAutomationClient.Database;
 using OfficeAutomationClient.Helper;
+using OfficeAutomationClient.Model;
 using OfficeAutomationClient.ViewModel;
+using Polly;
 using System;
 using System.Collections.Generic;
 using System.Drawing;
+using System.IO;
 using System.Linq;
 using System.Net;
 using System.Reflection;
@@ -16,18 +22,10 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Windows.Media;
-using ValidateCodeProcessor;
-
-#if INIT_ORGANIZATION_DB
-using Newtonsoft.Json;
-using OfficeAutomationClient.Database;
-using OfficeAutomationClient.Model;
-using Polly;
-using System.IO;
 using System.Xml;
 using System.Xml.Linq;
 using System.Xml.XPath;
-#endif
+using ValidateCodeProcessor;
 
 namespace OfficeAutomationClient.OA
 {
@@ -73,7 +71,7 @@ namespace OfficeAutomationClient.OA
         {
             try
             {
-                return HttpWebRequestClient.Create(url).WithCookies(_cookieContainer).WithParamters(parameters ?? new Dictionary<string, string>())
+                return HttpWebRequestClient.Create(url).WithCookies(_cookieContainer).WithParamters(parameters)
                     .GetResponseString();
             }
             catch (Exception ex)
@@ -169,13 +167,6 @@ namespace OfficeAutomationClient.OA
                 ConfigHelper.Save(ConfigKey.AutoLogin, login.AutoLogin.ToString());
             }
 
-#if INIT_ORGANIZATION_DB
-            using (var context = new OrganizationContext(DbFileName))
-            {
-                context.Database.Initialize(true);
-            }
-#endif
-
             return true;
         }
 
@@ -199,19 +190,69 @@ namespace OfficeAutomationClient.OA
             _credentials.Load();
         }
 
-        internal void GetAttendance(string date)
+        internal List<AttendanceInfo> GetAttendance(string date)
         {
-            //var resp = HttpWebRequestClient.Create(OAUrl.MonthAttDetail).WithCookies(cookieContainer).GetResponseString();
+            var deptID = GetDepartmentID(_userId);
+            var companyID = GetCompanyID(deptID);
+
+            if (string.IsNullOrEmpty(deptID) || string.IsNullOrEmpty(companyID)) return null;
 
             var parameters = new Dictionary<string, string>
             {
                 {"currentdate", date},
                 {"resourceId", _userId},
-                {"departmentId", "86"},
+                {"departmentId", deptID.Substring(1)},
                 {"rstr", RandomEx.NextString(10)},
-                {"subCompanyId", "1"}
+                {"subCompanyId", companyID}
             };
             var attdata = TryGetResponseString(OAUrl.MonthAttData, parameters);
+
+            var html = new HtmlDocument();
+            html.LoadHtml(attdata);
+
+            var rstNode = html.DocumentNode.SelectSingleNode("//table[@id=\"monthAttData\"]").ChildNodes.Where(n => n.Name.Equals("tr")).Last();
+            var attrst = rstNode.ChildNodes.Where(n => n.Name.Equals("td")).Skip(2).Select(n =>
+            {
+                var info = new AttendanceInfo();
+                info.Attend = string.Equals("√", n.InnerText.Trim());
+                var style = n.Attributes["style"].Value.ToLower();
+                if (style.Contains("red"))
+                {
+                    info.Holiday = true;
+                }
+                else if (style.Contains("greed"))
+                {
+                    info.Holiday = false;
+                }
+                return info;
+            }).ToList();
+
+            return attrst;
+        }
+
+        private string GetCompanyID(string deptID)
+        {
+            using (var context = new OrganizationContext(DbFileName))
+            {
+                while (true)
+                {
+                    var org = context.Organizations.Single(o => o.ID.Equals(deptID));
+                    if (org.Type == OrganizationType.Company || org.Type == OrganizationType.SubCompany)
+                    {
+                        return org.ID;
+                    }
+
+                    deptID = org.PID;
+                }
+            }
+        }
+
+        private string GetDepartmentID(string userID)
+        {
+            using (var context = new OrganizationContext(DbFileName))
+            {
+                return context.People.Single(p => p.RequestID.Equals(userID)).OrganizationID;
+            }
         }
 
         internal List<string> GetUsers()
@@ -245,8 +286,8 @@ namespace OfficeAutomationClient.OA
         }
 
 #if INIT_ORGANIZATION_DB
-        private readonly Func<int, TimeSpan> _delayDurationProvider = attempt => TimeSpan.FromSeconds(Math.Min(5, Math.Pow(2, attempt / 2)));
-        
+        private readonly Func<int, TimeSpan> _delayDurationProvider = attempt => TimeSpan.FromSeconds(Math.Min(5, Math.Pow(2, attempt - 1)));
+
         internal Organizations GetOrganizations()
         {
             var parameters = new Dictionary<string, string>
@@ -323,10 +364,64 @@ namespace OfficeAutomationClient.OA
             }
             catch (Exception ex)
             {
-                Logger.Error(ex, null, "查询组织 {0}_{1} 下成员失败", dept.ID, dept.Title);
+                Logger.Error(ex, null, "查询组织 {0}:{1} 下成员失败", dept.ID, dept.Title);
             }
 
             return people;
+        }
+
+        internal PersonalDetail GetPersonalDetail(Person person)
+        {
+            var detail = new PersonalDetail();
+            if (string.IsNullOrEmpty(person.RequestID)) return default(PersonalDetail);
+
+            try
+            {
+                var parameter = new Dictionary<string, string>
+                {
+                    {"isfromtab", "true"},
+                    {"id", person.RequestID.ToString()},
+                    {"fromHrmTab", "1"},
+                };
+
+                var html = new HtmlDocument();
+                var detailsDic = Policy<Dictionary<string, string>>
+                    .HandleResult(r => null == r || r.Count == 0)
+                    .WaitAndRetryForever(_delayDurationProvider)
+                    .Execute(() =>
+                    {
+                        var resp = TryGetResponseString(OAUrl.HrmResourceBase, parameter);
+                        html.LoadHtml(resp);
+
+                        var names = (from name in html.DocumentNode.SelectNodes("//td[@class=\"fieldName\"]") select name.InnerHtml.HtmlDecode().Trim()).ToList();
+                        var values = (from value in html.DocumentNode.SelectNodes("//td[@class=\"field\"]") select value.InnerText.HtmlDecode().Trim()).ToList();
+
+                        var rstdic = new Dictionary<string, string>();
+                        if (names.Count == 0 || values.Count == 0 || names.Count != values.Count) return rstdic;
+
+                        for (int i = 0; i < names.Count; i++)
+                        {
+                            rstdic.Add(names[i], values[i]);
+                        }
+
+                        return rstdic;
+                    });
+
+                detail.JobName = detailsDic["职务"];
+                detail.MobilePhone = detailsDic["移动电话"];
+                detail.OfficeLocation = detailsDic["办公地点"];
+                detail.OfficePhone = detailsDic["办公室电话"];
+                detail.Responsibility = detailsDic["职责描述"];
+                detail.StartDate = detailsDic["入职日期"];
+                detail.TechnicalTitle = detailsDic["职称"];
+                detail.RequestID = person.RequestID;
+            }
+            catch (Exception ex)
+            {
+                Logger.Error(ex, null, "获取 {0} 详细信息出错", person.RequestID);
+            }
+
+            return detail;
         }
 
         private IEnumerable<Person> ParsePerson(XElement xElement)
@@ -350,8 +445,7 @@ namespace OfficeAutomationClient.OA
                                 {
                                     case "lastname":
                                         person.LastName = value;
-                                        person.RequestID = int.Parse(Regex.Match(element.Value, "\\((.+)\\)")
-                                            .Value.Trim('(', ')'));
+                                        person.RequestID = Regex.Match(element.Value, "\\((.+)\\)").Value.Trim('(', ')');
                                         break;
                                     case "workcode":
                                         person.WorkCode = value;
@@ -382,6 +476,14 @@ namespace OfficeAutomationClient.OA
                 }
 
                 yield return person;
+            }
+        }
+
+        internal void RebuildDatabase()
+        {
+            using (var context = new OrganizationContext(DbFileName))
+            {
+                context.Database.Initialize(true);
             }
         }
 #endif

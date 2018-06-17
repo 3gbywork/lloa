@@ -1,4 +1,5 @@
-﻿using OfficeAutomationClient.Model;
+﻿#if INIT_ORGANIZATION_DB
+using OfficeAutomationClient.Model;
 using OfficeAutomationClient.OA;
 using SQLite.CodeFirst;
 using System.Data.Entity;
@@ -14,12 +15,11 @@ namespace OfficeAutomationClient.Database
 
         protected override void Seed(OrganizationContext context)
         {
-#if INIT_ORGANIZATION_DB
             var org = Business.Instance.GetOrganizations();
             context.Set<Organization>().AddRange(org);
             context.SaveChanges();
 
-            foreach (var dept in context.Organizations.Where(o => o.Type == Model.OrganizationType.Dept && o.Num > 0))
+            foreach (var dept in context.Organizations.Where(o => o.Type == OrganizationType.Dept && o.Num > 0))
             {
                 var people = Business.Instance.GetPeople(dept);
                 if (null == people || people.Count == 0) continue;
@@ -27,7 +27,16 @@ namespace OfficeAutomationClient.Database
                 context.Set<Person>().AddRange(people);
             }
             context.SaveChanges();
-#endif
+
+            foreach (var person in context.People)
+            {
+                var detail = Business.Instance.GetPersonalDetail(person);
+                if (null == detail) continue;
+
+                context.Set<PersonalDetail>().Add(detail);
+            }
+            context.SaveChanges();
         }
     }
 }
+#endif

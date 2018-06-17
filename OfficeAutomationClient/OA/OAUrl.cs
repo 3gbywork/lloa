@@ -17,12 +17,14 @@ namespace OfficeAutomationClient.OA
         public const string ValidateCode = Home + "/weaver/weaver.file.MakeValidateCode";
 
         public const string Organization = Home + "/js/hrm/getdata.jsp";
-        //public const string Department = Home + "/hrm/HrmTab.jsp";
-        //public const string DepartmentInfo = Home + "/hrm/company/HrmDepartmentDsp.jsp";
         public const string HrmResourceList = Home + "/hrm/company/HrmResourceList.jsp?id=";
         public const string SplitPage = Home + "/weaver/weaver.common.util.taglib.SplitPageXmlServlet";
 
-        public const string MonthAttDetail = Home + "/hrm/report/schedulediff/HrmScheduleDiffMonthAttDetail.jsp?fromHrmTab=1";
+        // 获取用户头像
+        // 解析：navLogo:"(.+)"
+        //public const string HrmResource = Home + "/hrm/HrmTab.jsp?_fromURL=HrmResource&id=";
+        public const string HrmResourceBase = Home + "/hrm/resource/HrmResourceBase.jsp";
+
         public const string MonthAttData = Home + "/hrm/report/schedulediff/HrmScheduleDiffMonthAttData.jsp";
     }
 }

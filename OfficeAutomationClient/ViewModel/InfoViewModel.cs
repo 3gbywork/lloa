@@ -24,6 +24,7 @@ namespace OfficeAutomationClient.ViewModel
         public ICommand QueryOrganizationCommand { get; set; }
         public ICommand QueryMonthAttDataCommand { get; set; }
         public ICommand AboutCommand { get; set; }
+        public ICommand RebuildDatabaseCommand { get; set; }
 
         public object Content { get => _content; set { Set(ref _content, value); } }
         public List<object> StatusBarItems
@@ -52,6 +53,13 @@ namespace OfficeAutomationClient.ViewModel
                 logger.Info("关于……");
                 ViewLocator.AboutWindow.ShowDialog();
             });
+#if INIT_ORGANIZATION_DB
+            RebuildDatabaseCommand = new RelayCommand(() =>
+            {
+                logger.Info("重建数据库……");
+                Business.Instance.RebuildDatabase();
+            });
+#endif
         }
     }
 }

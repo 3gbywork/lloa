@@ -26,5 +26,6 @@ namespace OfficeAutomationClient.OA
         public const string HrmResourceBase = Home + "/hrm/resource/HrmResourceBase.jsp";
 
         public const string MonthAttData = Home + "/hrm/report/schedulediff/HrmScheduleDiffMonthAttData.jsp";
+        public const string Calendar = "http://yun.rili.cn/wnl/index.html";
     }
 }

@@ -15,11 +15,15 @@ namespace OfficeAutomationClient.View
 
             SimpleIoc.Default.Register<LoginWindow>();
             SimpleIoc.Default.Register<InfoWindow>();
+
             SimpleIoc.Default.Register<AboutWindow>();
+            SimpleIoc.Default.Register<AttendanceInfoControl>();
         }
 
         public static LoginWindow LoginWindow => ServiceLocator.Current.GetInstance<LoginWindow>();
         public static InfoWindow InfoWindow => ServiceLocator.Current.GetInstance<InfoWindow>();
+
         public static AboutWindow AboutWindow => SimpleIoc.Default.GetInstanceWithoutCaching<AboutWindow>();
+        public static AttendanceInfoControl AttendanceInfo => SimpleIoc.Default.GetInstanceWithoutCaching<AttendanceInfoControl>();
     }
 }

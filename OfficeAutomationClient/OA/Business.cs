@@ -56,6 +56,12 @@ namespace OfficeAutomationClient.OA
 
             _credentials = new CredentialSet();
             _credentials.Load();
+
+            var version = RegistryHelper.GetIEVersion();
+            if (version != IEVersion.None)
+            {
+                RegistryHelper.SetWebBrowserEmulation(AssemblyName + ".exe", version);
+            }
         }
 
         public static Business Instance { get; } = new Business();
@@ -214,7 +220,7 @@ namespace OfficeAutomationClient.OA
             var attrst = rstNode.ChildNodes.Where(n => n.Name.Equals("td")).Skip(2).Select(n =>
             {
                 var info = new AttendanceInfo();
-                info.Attend = string.Equals("√", n.InnerText.Trim());
+                info.Attend = n.InnerText.Trim();
                 var style = n.Attributes["style"].Value.ToLower();
                 if (style.Contains("red"))
                 {

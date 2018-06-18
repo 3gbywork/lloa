@@ -44,9 +44,10 @@ namespace OfficeAutomationClient.ViewModel
             });
             QueryMonthAttDataCommand = new RelayCommand(() =>
             {
-                var date = DateTime.Now.ToString("yyyy-MM-dd");
-                logger.Info($"查询 {date} 月考勤 记录……");
-                Business.Instance.GetAttendance(date);
+                //var date = DateTime.Now.ToString("yyyy-MM-dd");
+                //logger.Info($"查询 {date} 月考勤 记录……");
+                Content = ViewLocator.AttendanceInfo;
+                //Business.Instance.GetAttendance(date);
             });
             AboutCommand = new RelayCommand(() =>
             {

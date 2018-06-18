@@ -34,6 +34,13 @@
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
+  <PropertyGroup>
+    <TargetZone>LocalIntranet</TargetZone>
+  </PropertyGroup>
+  <PropertyGroup>
+    <GenerateManifests>false</GenerateManifests>
+  </PropertyGroup>
+  <PropertyGroup />
   <ItemGroup>
     <Reference Include="CommonServiceLocator, Version=2.0.2.0, Culture=neutral, PublicKeyToken=489b6accfaf20ef0, processorArchitecture=MSIL">
       <HintPath>..\packages\CommonServiceLocator.2.0.2\lib\net40\CommonServiceLocator.dll</HintPath>
@@ -58,6 +65,11 @@
     </Reference>
     <Reference Include="log4net, Version=2.0.8.0, Culture=neutral, PublicKeyToken=669e0ddf0bb1aa2a, processorArchitecture=MSIL">
       <HintPath>..\packages\log4net.2.0.8\lib\net40-full\log4net.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.mshtml, Version=7.0.3300.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a">
+      <SpecificVersion>False</SpecificVersion>
+      <EmbedInteropTypes>True</EmbedInteropTypes>
+      <HintPath>C:\Program Files (x86)\Microsoft.NET\Primary Interop Assemblies\Microsoft.mshtml.dll</HintPath>
     </Reference>
     <Reference Include="Microsoft.Threading.Tasks, Version=1.0.12.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
       <HintPath>..\packages\Microsoft.Bcl.Async.1.0.168\lib\net40\Microsoft.Threading.Tasks.dll</HintPath>
@@ -153,6 +165,7 @@
     <Compile Include="Database\SQLiteConfiguration.cs" />
     <Compile Include="Database\SQLiteConnectionFactory.cs" />
     <Compile Include="Helper\ConfigHelper.cs" />
+    <Compile Include="Helper\RegistryHelper.cs" />
     <Compile Include="Model\AttendanceInfo.cs" />
     <Compile Include="Model\Organization.cs" />
     <Compile Include="Model\Person.cs" />
@@ -166,6 +179,9 @@
     <Compile Include="ViewModel\ViewModelLocator.cs" />
     <Compile Include="View\AboutWindow.xaml.cs">
       <DependentUpon>AboutWindow.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="View\AttendanceInfoControl.xaml.cs">
+      <DependentUpon>AttendanceInfoControl.xaml</DependentUpon>
     </Compile>
     <Compile Include="View\InfoWindow.xaml.cs">
       <DependentUpon>InfoWindow.xaml</DependentUpon>
@@ -181,6 +197,9 @@
     <Compile Include="View\ViewLocator.cs" />
     <Compile Include="View\WindowBase.cs" />
     <Page Include="View\AboutWindow.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="View\AttendanceInfoControl.xaml">
       <Generator>MSBuild:Compile</Generator>
     </Page>
     <Page Include="View\InfoWindow.xaml">

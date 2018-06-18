@@ -7,7 +7,7 @@ namespace OfficeAutomationClient.Model
 {
     class AttendanceInfo
     {
-        public bool Attend { get; set; }
+        public string Attend { get; set; }
         /// <summary>
         /// 是否法定假日
         /// true:法定假期

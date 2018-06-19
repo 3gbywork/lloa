@@ -2,8 +2,10 @@
 using OfficeAutomationClient.OA;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Windows;
 using System.Windows.Controls;
@@ -16,6 +18,10 @@ using System.Windows.Navigation;
 using System.Windows.Shapes;
 using mshtml;
 using System.Text.RegularExpressions;
+using HtmlAgilityPack;
+using Newtonsoft.Json;
+using OfficeAutomationClient.Extension;
+using OfficeAutomationClient.Model;
 
 namespace OfficeAutomationClient.View
 {
@@ -28,9 +34,11 @@ namespace OfficeAutomationClient.View
         {
             InitializeComponent();
 
+            browser.ObjectForScripting = JsFunction.Instance;
+
             browser.Navigating += (sender, e) =>
             {
-                SetWebBrowserSilent(sender as WebBrowser, true);
+                (sender as WebBrowser).SuppressScriptErrors(true);
             };
 
             browser.LoadCompleted += (sender, e) =>
@@ -40,33 +48,50 @@ namespace OfficeAutomationClient.View
                 dom.getElementById("indexWindow").children[0].innerHTML = "";
 
                 var css = dom.createStyleSheet();
-                css.addRule(".status", "width:21px;height:21px;line-height:21px;font-weight:700;color:#fff;position:absolute;left:5px;top:5px;z-index:2;overflow:hidden;font-size:14px;display:block;");
-                css.addRule(".attendance", "width:21px;height:21px;line-height:21px;font-weight:700;color:#fff;position:absolute;left:5px;bottom:5px;z-index:2;overflow:hidden;font-size:14px;display:block;");
+                css.cssText = GetStringFromFile("css/attendance.css");
+                //css.addRule(".status", "width:21px;height:21px;line-height:21px;font-weight:700;color:#fff;position:absolute;left:5px;top:5px;z-index:2;overflow:hidden;font-size:14px;display:block;");
+                //css.addRule(".attendance", "width:21px;height:21px;line-height:21px;font-weight:700;color:#fff;position:absolute;left:5px;bottom:5px;z-index:2;overflow:hidden;font-size:14px;display:block;");
 
-                var year = dom.getElementById("yearValue").innerText.Trim();
-                var month = dom.getElementById("monthValue").innerText.Trim().PadLeft(2, '0');
-                var day = Regex.Match(dom.documentElement.innerHTML, "NumberDay\">(\\d+)<").Value.Split('>', '<')[1];
+                var js = dom.createElement("script");
+                js.setAttribute("type", "text/javascript");
+                js.setAttribute("text", "window.external.GetAttendance(\"2018-06-02\")");
+                //js.setAttribute("text", GetStringFromFile("js/attendance.js"));
+                var head = dom.getElementsByTagName("head").Cast<HTMLHeadElement>().First();
+                head.appendChild((IHTMLDOMNode)js);
+                //(dom.body.document as HTMLDocument).appendChild(js.document);
+                //dom.appendChild(js.document);
 
-                var attInfo = Business.Instance.GetAttendance($"{year}-{month}-{day}");
+                browser.InvokeScript("showCal", new object[] { DateTime.Now.ToString("yyyy-MM-dd") });
 
-                var table = dom.getElementById("cont").document as HTMLDocument;
-                var alist = table.getElementsByName("a");
+                //var head = dom.getElementsByTagName("head")[0];
+                //var year = dom.getElementById("yearValue").innerText.Trim();
+                //var month = dom.getElementById("monthValue").innerText.Trim().PadLeft(2, '0');
+                //var day = Regex.Match(dom.documentElement.innerHTML, "NumberDay\">(\\d+)<").Value.Split('>', '<')[1];
 
-                var firstDate = $"{month}{day}";
-                var findFirst = false;
-                for (int i = 0, j = 0; i < alist.length; i++)
-                {
-                    var a = alist.item(index: i) as IHTMLElement;
-                    if (firstDate.Equals(a.getAttribute("data")))
-                    {
-                        findFirst = true;
-                    }
-                    if (findFirst)
-                    {
-                        //a.document
-                        //attInfo[j].Attend
-                    }
-                }
+                //var attInfo = Business.Instance.GetAttendance($"{year}-{month}-{day}");
+
+                //var htmlDom = new HtmlDocument();
+                //htmlDom.LoadHtml(dom.documentElement.innerHTML);
+                ////htmlDom.GetElementbyId("cont").ChildNodes.
+
+                //var table = dom.getElementById("cont").document as HTMLDocument;
+                //var alist = table.getElementsByName("a");
+
+                //var firstDate = $"{month}{day}";
+                //var findFirst = false;
+                //for (int i = 0, j = 0; i < alist.length; i++)
+                //{
+                //    var a = alist.item(index: i) as IHTMLElement;
+                //    if (firstDate.Equals(a.getAttribute("data")))
+                //    {
+                //        findFirst = true;
+                //    }
+                //    if (findFirst)
+                //    {
+                //        //a.document
+                //        //attInfo[j].Attend
+                //    }
+                //}
             };
 
             Loaded += delegate
@@ -75,20 +100,14 @@ namespace OfficeAutomationClient.View
             };
         }
 
-        /// <summary>  
-        /// 设置浏览器静默，不弹错误提示框  
-        /// </summary>  
-        /// <param name="webBrowser">要设置的WebBrowser控件浏览器</param>  
-        /// <param name="silent">是否静默</param>  
-        private void SetWebBrowserSilent(WebBrowser webBrowser, bool silent)
+        private string GetStringFromFile(string filename)
         {
-            FieldInfo fi = typeof(WebBrowser).GetField("_axIWebBrowser2", BindingFlags.Instance | BindingFlags.NonPublic);
-            if (fi != null)
+            if (File.Exists(filename))
             {
-                object browser = fi.GetValue(webBrowser);
-                if (browser != null)
-                    browser.GetType().InvokeMember("Silent", BindingFlags.SetProperty, null, browser, new object[] { silent });
+                return File.ReadAllText(filename);
             }
+
+            return string.Empty;
         }
     }
 }

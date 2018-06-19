@@ -1,0 +1,30 @@
+﻿.status {
+    width: 21px;
+    height: 21px;
+    line-height: 21px;
+    font-weight: 700;
+    color: #fff;
+    position: absolute;
+    z-index: 2;
+    overflow: hidden;
+    font-size: 14px;
+    display: block;
+}
+
+.work {
+    right: 5px;
+    top: 5px;
+    background: #53a253;
+}
+
+.rest {
+    right: 5px;
+    top: 5px;
+    background: #e15e5e;
+}
+
+.attendance {
+    left: 5px;
+    bottom: 5px;
+    background: aliceblue;
+}

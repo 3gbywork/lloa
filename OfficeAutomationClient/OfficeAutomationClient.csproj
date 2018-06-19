@@ -164,7 +164,9 @@
     <Compile Include="Database\OrganizationContext.cs" />
     <Compile Include="Database\SQLiteConfiguration.cs" />
     <Compile Include="Database\SQLiteConnectionFactory.cs" />
+    <Compile Include="Extension\WebBrowserExtensions.cs" />
     <Compile Include="Helper\ConfigHelper.cs" />
+    <Compile Include="Helper\JsFunction.cs" />
     <Compile Include="Helper\RegistryHelper.cs" />
     <Compile Include="Model\AttendanceInfo.cs" />
     <Compile Include="Model\Organization.cs" />
@@ -225,6 +227,9 @@
       <DependentUpon>Settings.settings</DependentUpon>
       <DesignTimeSharedInput>True</DesignTimeSharedInput>
     </Compile>
+    <Content Include="js\attendance.js">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
     <EmbeddedResource Include="Properties\Resources.resx">
       <Generator>ResXFileCodeGenerator</Generator>
       <LastGenOutput>Resources.Designer.cs</LastGenOutput>
@@ -232,6 +237,9 @@
     <None Include="app.config">
       <SubType>Designer</SubType>
     </None>
+    <Content Include="css\attendance.css">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
     <None Include="nlog.config">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>

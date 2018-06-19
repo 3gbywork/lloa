@@ -9,6 +9,7 @@
     overflow: hidden;
     font-size: 14px;
     display: block;
+    text-align: center;
 }
 
 .work {
@@ -24,7 +25,7 @@
 }
 
 .attendance {
-    left: 5px;
+    right: 5px;
     bottom: 5px;
-    background: aliceblue;
+    background: #ffaf23;
 }

@@ -35,63 +35,32 @@ namespace OfficeAutomationClient.View
             InitializeComponent();
 
             browser.ObjectForScripting = JsFunction.Instance;
-
-            browser.Navigating += (sender, e) =>
-            {
-                (sender as WebBrowser).SuppressScriptErrors(true);
-            };
+            browser.SuppressScriptErrors(true);
 
             browser.LoadCompleted += (sender, e) =>
             {
+                // 屏蔽右键菜单
+                (browser.Document as HTMLDocumentEvents_Event).oncontextmenu += delegate { return false; };
+
                 var dom = browser.Document as HTMLDocument;
 
+                // 清空头部文字及下载链接
                 dom.getElementById("indexWindow").children[0].innerHTML = "";
 
+                // 注入css
                 var css = dom.createStyleSheet();
                 css.cssText = GetStringFromFile("css/attendance.css");
-                //css.addRule(".status", "width:21px;height:21px;line-height:21px;font-weight:700;color:#fff;position:absolute;left:5px;top:5px;z-index:2;overflow:hidden;font-size:14px;display:block;");
-                //css.addRule(".attendance", "width:21px;height:21px;line-height:21px;font-weight:700;color:#fff;position:absolute;left:5px;bottom:5px;z-index:2;overflow:hidden;font-size:14px;display:block;");
 
+                // 注入js
                 var js = dom.createElement("script");
                 js.setAttribute("type", "text/javascript");
-                js.setAttribute("text", "window.external.GetAttendance(\"2018-06-02\")");
-                //js.setAttribute("text", GetStringFromFile("js/attendance.js"));
+                js.setAttribute("text", GetStringFromFile("js/attendance.js"));
+
                 var head = dom.getElementsByTagName("head").Cast<HTMLHeadElement>().First();
                 head.appendChild((IHTMLDOMNode)js);
-                //(dom.body.document as HTMLDocument).appendChild(js.document);
-                //dom.appendChild(js.document);
 
-                browser.InvokeScript("showCal", new object[] { DateTime.Now.ToString("yyyy-MM-dd") });
-
-                //var head = dom.getElementsByTagName("head")[0];
-                //var year = dom.getElementById("yearValue").innerText.Trim();
-                //var month = dom.getElementById("monthValue").innerText.Trim().PadLeft(2, '0');
-                //var day = Regex.Match(dom.documentElement.innerHTML, "NumberDay\">(\\d+)<").Value.Split('>', '<')[1];
-
-                //var attInfo = Business.Instance.GetAttendance($"{year}-{month}-{day}");
-
-                //var htmlDom = new HtmlDocument();
-                //htmlDom.LoadHtml(dom.documentElement.innerHTML);
-                ////htmlDom.GetElementbyId("cont").ChildNodes.
-
-                //var table = dom.getElementById("cont").document as HTMLDocument;
-                //var alist = table.getElementsByName("a");
-
-                //var firstDate = $"{month}{day}";
-                //var findFirst = false;
-                //for (int i = 0, j = 0; i < alist.length; i++)
-                //{
-                //    var a = alist.item(index: i) as IHTMLElement;
-                //    if (firstDate.Equals(a.getAttribute("data")))
-                //    {
-                //        findFirst = true;
-                //    }
-                //    if (findFirst)
-                //    {
-                //        //a.document
-                //        //attInfo[j].Attend
-                //    }
-                //}
+                // 调用注入后的js
+                browser.InvokeScript("showCalendar", new object[1] { DateTime.Now.ToString("yyyy-MM-dd") });
             };
 
             Loaded += delegate
@@ -108,6 +77,12 @@ namespace OfficeAutomationClient.View
             }
 
             return string.Empty;
+        }
+
+        private void browser_PreviewKeyDown(object sender, KeyEventArgs e)
+        {
+            // 屏蔽 F5 刷新
+            if (e.Key == Key.F5) e.Handled = true;
         }
     }
 }

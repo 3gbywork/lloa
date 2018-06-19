@@ -213,52 +213,79 @@ namespace OfficeAutomationClient.OA
             };
             var attdata = TryGetResponseString(OAUrl.MonthAttData, parameters);
 
-            var html = new HtmlDocument();
-            html.LoadHtml(attdata);
-
-            var rstNode = html.DocumentNode.SelectSingleNode("//table[@id=\"monthAttData\"]").ChildNodes.Where(n => n.Name.Equals("tr")).Last();
-            var attrst = rstNode.ChildNodes.Where(n => n.Name.Equals("td")).Skip(2).Select(n =>
+            try
             {
-                var info = new AttendanceInfo();
-                info.Attend = n.InnerText.Trim();
-                var style = n.Attributes["style"].Value.ToLower();
-                if (style.Contains("red"))
-                {
-                    info.Holiday = true;
-                }
-                else if (style.Contains("greed"))
-                {
-                    info.Holiday = false;
-                }
-                return info;
-            }).ToList();
+                var html = new HtmlDocument();
+                html.LoadHtml(attdata);
 
-            return attrst;
+                var rstNode = html.DocumentNode.SelectSingleNode("//table[@id=\"monthAttData\"]").ChildNodes.Where(n => n.Name.Equals("tr")).Last();
+                var attrst = rstNode.ChildNodes.Where(n => n.Name.Equals("td")).Skip(2).Select(n =>
+                {
+                    var info = new AttendanceInfo();
+                    info.Attend = n.InnerText.Trim();
+                    var style = n.Attributes["style"].Value.ToLower();
+                    if (style.Contains("red"))
+                    {
+                        info.Holiday = true;
+                    }
+                    else if (style.Contains("green"))
+                    {
+                        info.Holiday = false;
+                    }
+                    return info;
+                }).ToList();
+
+                return attrst;
+            }
+            catch (Exception ex)
+            {
+                Logger.Error(ex, null, "解析考勤数据出错，{0}", attdata);
+            }
+
+            return Enumerable.Empty<AttendanceInfo>().ToList();
         }
 
         private string GetCompanyID(string deptID)
         {
-            using (var context = new OrganizationContext(DbFileName))
+            try
             {
-                while (true)
+                using (var context = new OrganizationContext(DbFileName))
                 {
-                    var org = context.Organizations.Single(o => o.ID.Equals(deptID));
-                    if (org.Type == OrganizationType.Company || org.Type == OrganizationType.SubCompany)
+                    while (true)
                     {
-                        return org.ID;
-                    }
+                        var org = context.Organizations.Single(o => o.ID.Equals(deptID));
+                        if (org.Type == OrganizationType.Company || org.Type == OrganizationType.SubCompany)
+                        {
+                            return org.ID;
+                        }
 
-                    deptID = org.PID;
+                        deptID = org.PID;
+                    }
                 }
             }
+            catch (Exception ex)
+            {
+                Logger.Error(ex, null, "获取部门 {0} 所属公司出错", deptID);
+            }
+
+            return string.Empty;
         }
 
         private string GetDepartmentID(string userID)
         {
-            using (var context = new OrganizationContext(DbFileName))
+            try
             {
-                return context.People.Single(p => p.RequestID.Equals(userID)).OrganizationID;
+                using (var context = new OrganizationContext(DbFileName))
+                {
+                    return context.People.Single(p => p.RequestID.Equals(userID)).OrganizationID;
+                }
             }
+            catch (Exception ex)
+            {
+                Logger.Error(ex, null, "获取员工 {0} 所属部门出错", userID);
+            }
+
+            return string.Empty;
         }
 
         internal List<string> GetUsers()

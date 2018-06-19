@@ -1,11 +1,12 @@
-﻿showCal: function(selectDate) {
+﻿calander.showCal = function (selectDate) {
     var is5Row = (rows <= 5 ? true : false);
     if (typeof (selectDate) == "undefined") {
         selectDate = date = makeCal.setTimeZero(new Date());
     }
     selectDate = makeCal.setTimeZero(selectDate);
     var cldCache = null;//月份为转换后的月
-    $('#month_num').text(selectDate.getMonth() + 1);
+    var month = selectDate.getMonth() + 1;
+    $('#month_num').text(month);
     $('#year_num').text(selectDate.getFullYear());
     var table = "<table> \
 						<thead class='tablehead'> \
@@ -24,6 +25,8 @@
 						<tbody>";
     var index = 40;
     var ind = 0;
+    var rst = window.external.GetAttendance(selectDate.format("yyyy-MM-dd"));
+    var att = eval(rst);
     for (var i = 0; i < rows; i++) {
         var aWeek = "<tr style='height:" + (1 / rows).toPercent() + ";'>";
         for (var j = 0; j < 7; j++) {
@@ -48,12 +51,22 @@
                     "data='" + (calData[i][j].value.format('MMdd')) + "' href=\"javascript:;\">";
                 var dateDay = calData[i][j].date;
 
-                var year = calData[i][j].value.getFullYear();
-                var md = calData[i][j].value.format('MM-dd');
+                var tmpmonth = calData[i][j].value.getMonth() + 1;
+                var tmpday = calData[i][j].value.getDate() - 1;
+                if (tmpmonth == month && att.length > tmpday) {
+                    if (att[tmpday].Attend != null && att[tmpday].Attend != "") {
+                        aDay += "<div class='status attendance' style=\"width:" + att[tmpday].Attend.length * 21 + "px;\">" + att[tmpday].Attend + "</div>";
+                    }
+                    if (att[tmpday].Holiday != null) {
+                        if (att[tmpday].Holiday == true) {
+                            aDay += "<div class='status rest'>休</div>";
+                        }
+                        else {
+                            aDay += "<div class='status work'>班</div>";
+                        }
+                    }
+                }
 
-                var rst = window.external.GetAttendance(year + '-' + md);
-
-              
                 aDay += "<div style='display:inline-block;position:absolute;" +
                     "top:50%;width:100%;margin-top:-22px;left:0;'>";
                 if (calData[i][j].weekend && !(calData[i][j].after || calData[i][j].before)) {
@@ -66,7 +79,7 @@
                     }
                 }
                 //var dataStr= "";
-                cldCache = cacheMgr.getCld(year, calData[i][j].value.getMonth());
+                cldCache = cacheMgr.getCld(calData[i][j].value.getFullYear(), calData[i][j].value.getMonth());
                 var dayStr = "";
                 var color = "style='color:#BC5016;'";
                 var title = "";
@@ -123,4 +136,8 @@
     //加载当月的数据
     //		loadMonthEvent(selectDate);
     changeStyle();
-},
+}
+
+function showCalendar(selectDate) {
+    calander.showCal(selectDate);
+}

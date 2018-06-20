@@ -141,3 +141,8 @@
 function showCalendar(selectDate) {
     calander.showCal(selectDate);
 }
+
+function relocate(city) {
+    loadJsonp(city);
+    $("#city .change").hide();
+}

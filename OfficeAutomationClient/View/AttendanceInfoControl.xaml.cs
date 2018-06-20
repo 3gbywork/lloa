@@ -18,6 +18,7 @@ using System.Windows.Navigation;
 using System.Windows.Shapes;
 using mshtml;
 using System.Text.RegularExpressions;
+using CommonUtility.Http;
 using HtmlAgilityPack;
 using Newtonsoft.Json;
 using OfficeAutomationClient.Extension;
@@ -59,14 +60,30 @@ namespace OfficeAutomationClient.View
                 var head = dom.getElementsByTagName("head").Cast<HTMLHeadElement>().First();
                 head.appendChild((IHTMLDOMNode)js);
 
+                // 切换当前城市
+                var city = GetCityName();
                 // 调用注入后的js
-                browser.InvokeScript("showCalendar", new object[1] { DateTime.Now.ToString("yyyy-MM-dd") });
+                browser.InvokeScript("relocate", new object[] { city });
+                browser.InvokeScript("showCalendar", new object[] { DateTime.Now.ToString("yyyy-MM-dd") });
             };
 
             Loaded += delegate
             {
                 browser.Navigate(OAUrl.Calendar);
             };
+        }
+
+        private string GetCityName()
+        {
+            try
+            {
+                var resp = HttpWebRequestClient.Create("http://ip.chinaz.com/getip.aspx").GetResponseString();
+                return resp.Split('省', '市')[1];
+            }
+            catch (Exception)
+            {
+                return "沈阳";
+            }
         }
 
         private string GetStringFromFile(string filename)

@@ -248,6 +248,7 @@
       <Generator>SettingsSingleFileGenerator</Generator>
       <LastGenOutput>Settings.Designer.cs</LastGenOutput>
     </None>
+    <None Include="README.md" />
     <None Include="TODO.md" />
   </ItemGroup>
   <ItemGroup>

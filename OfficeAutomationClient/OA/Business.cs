@@ -251,7 +251,8 @@ namespace OfficeAutomationClient.OA
             {
                 using (var context = new OrganizationContext(DbFileName))
                 {
-                    while (true)
+                    // 避免死循环，查询10个层次
+                    for (int i = 10; i > 0; i--)
                     {
                         var org = context.Organizations.Single(o => o.ID.Equals(deptID));
                         if (org.Type == OrganizationType.Company || org.Type == OrganizationType.SubCompany)

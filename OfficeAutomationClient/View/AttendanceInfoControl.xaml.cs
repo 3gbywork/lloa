@@ -1,28 +1,15 @@
-﻿using OfficeAutomationClient.Helper;
+﻿using CommonUtility.Http;
+using mshtml;
+using OfficeAutomationClient.Extension;
+using OfficeAutomationClient.Helper;
 using OfficeAutomationClient.OA;
 using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Reflection;
-using System.Runtime.InteropServices;
-using System.Text;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
 using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
-using mshtml;
-using System.Text.RegularExpressions;
-using CommonUtility.Http;
-using HtmlAgilityPack;
-using Newtonsoft.Json;
-using OfficeAutomationClient.Extension;
-using OfficeAutomationClient.Model;
 
 namespace OfficeAutomationClient.View
 {
@@ -35,14 +22,13 @@ namespace OfficeAutomationClient.View
         {
             InitializeComponent();
 
-            browser.ObjectForScripting = JsFunction.Instance;
+            browser.ObjectForScripting = new JsFunction(browser);
             browser.SuppressScriptErrors(true);
 
             browser.LoadCompleted += (sender, e) =>
             {
                 // 屏蔽右键菜单
                 (browser.Document as HTMLDocumentEvents_Event).oncontextmenu += delegate { return false; };
-
                 var dom = browser.Document as HTMLDocument;
 
                 // 清空头部文字及下载链接
@@ -100,6 +86,28 @@ namespace OfficeAutomationClient.View
         {
             // 屏蔽 F5 刷新
             if (e.Key == Key.F5) e.Handled = true;
+        }
+
+        private void RefreshAttendanceInfoClick(object sender, RoutedEventArgs e)
+        {
+            var btn = sender as Button;
+            if (null == btn) return;
+
+            btn.IsEnabled = false;
+
+            var date = browser.InvokeScript("getCurrentDate") as string;
+
+            TaskEx.Run(() =>
+            {
+                Business.Instance.RemoveAttendance(date);
+                var attendance = Business.Instance.GetAndCacheAttendance(date);
+
+                Dispatcher.Invoke(new Action(() =>
+                {
+                    browser.InvokeScript("showAttendance", new object[] { date, attendance });
+                    btn.IsEnabled = true;
+                }));
+            });
         }
     }
 }

@@ -1,28 +1,32 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Runtime.InteropServices;
-using System.Text;
-using Newtonsoft.Json;
+﻿using GalaSoft.MvvmLight.Threading;
 using OfficeAutomationClient.OA;
+using System.Runtime.InteropServices;
+using System.Threading.Tasks;
+using System.Windows.Controls;
 
 namespace OfficeAutomationClient.Helper
 {
     [ComVisible(true)]
     public class JsFunction
     {
-        private JsFunction()
-        {
+        private readonly WebBrowser browser;
 
+        public JsFunction(WebBrowser browser)
+        {
+            this.browser = browser;
         }
 
-        public static JsFunction Instance = new JsFunction();
-
-        public string GetAttendance(string date)
+        public void GetAttendance(string date)
         {
-            var att = Business.Instance.GetAttendance(date);
-            var rst = JsonConvert.SerializeObject(att);
-            return rst;
+            TaskEx.Run(() =>
+            {
+                var attendance = Business.Instance.GetAndCacheAttendance(date);
+
+                DispatcherHelper.CheckBeginInvokeOnUI(() =>
+                {
+                    browser.InvokeScript("showAttendance", new object[] { date, attendance });
+                });
+            });
         }
     }
 }

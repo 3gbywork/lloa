@@ -7,6 +7,13 @@
              mc:Ignorable="d" 
              d:DesignHeight="450" d:DesignWidth="800">
     <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="auto"/>
+        </Grid.RowDefinitions>
         <WebBrowser x:Name="browser" PreviewKeyDown="browser_PreviewKeyDown"/>
+        <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Right">
+            <Button Content="刷新考勤记录" Click="RefreshAttendanceInfoClick" Margin="5"/>
+        </StackPanel>
     </Grid>
 </UserControl>

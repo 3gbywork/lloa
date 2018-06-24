@@ -17,6 +17,7 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Reflection;
+using System.Runtime.Caching;
 using System.Security;
 using System.Security.Cryptography;
 using System.Text;
@@ -65,7 +66,7 @@ namespace OfficeAutomationClient.OA
         }
 
         public static Business Instance { get; } = new Business();
-
+        
         public void Dispose()
         {
             Logout();
@@ -196,6 +197,53 @@ namespace OfficeAutomationClient.OA
             _credentials.Load();
         }
 
+        internal void RemoveAttendance(string date)
+        {
+            try
+            {
+                var cache = MemoryCache.Default;
+                cache.Remove(DateTime.Parse(date).ToString("yyyy-MM"));
+            }
+            catch (Exception ex)
+            {
+                Logger.Error(ex, null, "清除考勤缓存数据失败，date：{0}", date);
+            }
+        }
+
+        internal string GetAndCacheAttendance(string date)
+        {
+            try
+            {
+                var cache = MemoryCache.Default;
+                var key = DateTime.Parse(date).ToString("yyyy-MM");
+                if (cache.Contains(key))
+                {
+                    return cache[key] as string;
+                }
+                else
+                {
+                    var rst = GetAttendanceJson(date);
+                    if (!string.IsNullOrEmpty(rst))
+                        cache.Set(key, rst, DateTimeOffset.MaxValue);
+                    return rst;
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.Error(ex, null, "获取考勤数据失败，date：{0}", date);
+            }
+
+            return string.Empty;
+        }
+
+        private string GetAttendanceJson(string date)
+        {
+            var attInfo = GetAttendance(date);
+            if (null == attInfo || attInfo.Count == 0) return string.Empty;
+
+            return JsonConvert.SerializeObject(attInfo);
+        }
+
         internal List<AttendanceInfo> GetAttendance(string date)
         {
             var deptID = GetDepartmentID(_userId);
@@ -239,7 +287,7 @@ namespace OfficeAutomationClient.OA
             }
             catch (Exception ex)
             {
-                Logger.Error(ex, null, "解析考勤数据出错，{0}", attdata);
+                Logger.Error(ex, null, "解析考勤数据出错，date：{0}，response：{1}", date, attdata);
             }
 
             return Enumerable.Empty<AttendanceInfo>().ToList();

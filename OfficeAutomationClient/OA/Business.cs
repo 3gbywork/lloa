@@ -3,6 +3,7 @@ using CommonUtility.Http;
 using CommonUtility.Logging;
 using CommonUtility.Rand;
 using CredentialManagement;
+using GalaSoft.MvvmLight.Messaging;
 using HtmlAgilityPack;
 using Newtonsoft.Json;
 using OfficeAutomationClient.Database;
@@ -43,18 +44,14 @@ namespace OfficeAutomationClient.OA
         private readonly CookieContainer _cookieContainer = new CookieContainer();
         private readonly CredentialSet _credentials;
 
-        private readonly string _title;
+        private string _title;
         private string _companyName;
         private string _userId;
         private string _validateCode;
+        private string _loginCookieCheck;
 
         private Business()
         {
-            TryGetResponseString(OAUrl.Home);
-            var resp = TryGetResponseString(OAUrl.Login);
-
-            _title = TryGetTitle(resp);
-
             _credentials = new CredentialSet();
             _credentials.Load();
 
@@ -66,7 +63,7 @@ namespace OfficeAutomationClient.OA
         }
 
         public static Business Instance { get; } = new Business();
-        
+
         public void Dispose()
         {
             Logout();
@@ -146,6 +143,11 @@ namespace OfficeAutomationClient.OA
 
         internal bool Login(LoginViewModel login, SecureString password)
         {
+            TryGetResponseString(OAUrl.Home);
+            var rsp = TryGetResponseString(OAUrl.Login);
+
+            _title = TryGetTitle(rsp);
+
             var parameters = new Dictionary<string, string>
             {
                 {"loginfile", "/wui/theme/ecology8/page/login.jsp?templateId=3&logintype=1&gopage="},
@@ -157,12 +159,27 @@ namespace OfficeAutomationClient.OA
                 {"loginid", login.User},
                 {"userpassword", password.CreateString()},
                 {"submit", "登录"},
-                {"validatecode", login.ValidateCode}
+                {"validatecode", login.ValidateCode},
+
+                // login2
+                //{"message", "52"},
+                //{"gopage", ""},
+                //{"rnd", ""},
+                //{"serial", ""},
+                //{"username", ""},
             };
             var resp = TryGetResponseString(OAUrl.VerifyLogin, parameters);
-            if (!resp.Contains("logincookiecheck")) return false;
+            if (!TryGetLoginCookieCheck(resp)) return false;
 
-            _userId = _cookieContainer.GetCookies(new Uri(OAUrl.Home))["loginidweaver"].Value;
+            var uri = new Uri(OAUrl.Home);
+
+            //_cookieContainer.Add(uri, new Cookie("logincookiecheck", _loginCookieCheck));
+            //TryGetResponseString(OAUrl.RemindLogin);
+            //_cookieContainer.GetCookies(uri)["logincookiecheck"].Expires = DateTime.Now.AddDays(-1);
+
+            //TryGetResponseString(OAUrl.ServerStatusLogin);
+
+            _userId = _cookieContainer.GetCookies(uri)["loginidweaver"].Value;
             _companyName = TryGetCompanyName(TryGetResponseString(OAUrl.SysRemind));
 
             if (login.RememberPwd)
@@ -177,9 +194,33 @@ namespace OfficeAutomationClient.OA
             return true;
         }
 
+        private bool TryGetLoginCookieCheck(string resp)
+        {
+            try
+            {
+                var match = Regex.Match(resp, "logincookiecheck=(.+)'");
+                if (!string.IsNullOrEmpty(match.Value))
+                {
+                    _loginCookieCheck = match.Value.Split('=')[1].TrimEnd('\'');
+                    return !string.IsNullOrEmpty(_loginCookieCheck);
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.Error(ex, null, "解析 logincookiecheck 出错，{0}", resp);
+            }
+
+            return false;
+        }
+
         internal void Logout()
         {
+            if (!string.IsNullOrEmpty(_loginCookieCheck))
+                _cookieContainer.Add(new Uri(OAUrl.Home), new Cookie("logincookiecheck", _loginCookieCheck));
             TryGetResponseString(OAUrl.Logout);
+
+            //_cookieContainer = new CookieContainer();
+            //TryGetResponseString(OAUrl.Refresh);
         }
 
         private void SaveOrUpdateCredential(string user, SecureString password)

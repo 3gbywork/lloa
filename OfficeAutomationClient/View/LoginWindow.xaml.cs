@@ -5,6 +5,7 @@ using GalaSoft.MvvmLight.Threading;
 using OfficeAutomationClient.Helper;
 using OfficeAutomationClient.OA;
 using OfficeAutomationClient.ViewModel;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -23,6 +24,8 @@ namespace OfficeAutomationClient.View
         {
             this.Loaded += delegate
             {
+                if (users.Count == 0) return;
+
                 var user = users.Last();
                 GetPassword(user);
 
@@ -57,6 +60,13 @@ namespace OfficeAutomationClient.View
                     password.Password = Business.Instance.QueryPassword(user).CreateString();
                 else password.Password = string.Empty;
             });
+        }
+
+        protected override void OnClosed(EventArgs e)
+        {
+            base.OnClosed(e);
+
+            Messenger.Default.Unregister<string>(this, TMessageToken.UserChanged);
         }
     }
 }

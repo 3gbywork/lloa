@@ -46,7 +46,7 @@ namespace OfficeAutomationClient.ViewModel
             SimpleIoc.Default.Register<AboutViewModel>();
         }
 
-        public LoginViewModel Login => ServiceLocator.Current.GetInstance<LoginViewModel>();
+        public LoginViewModel Login => SimpleIoc.Default.GetInstanceWithoutCaching<LoginViewModel>();
         public InfoViewModel Info => ServiceLocator.Current.GetInstance<InfoViewModel>();
         public AboutViewModel About => ServiceLocator.Current.GetInstance<AboutViewModel>();
 

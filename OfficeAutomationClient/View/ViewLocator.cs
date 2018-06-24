@@ -20,7 +20,7 @@ namespace OfficeAutomationClient.View
             SimpleIoc.Default.Register<AttendanceInfoControl>();
         }
 
-        public static LoginWindow LoginWindow => ServiceLocator.Current.GetInstance<LoginWindow>();
+        public static LoginWindow LoginWindow => SimpleIoc.Default.GetInstanceWithoutCaching<LoginWindow>();
         public static InfoWindow InfoWindow => ServiceLocator.Current.GetInstance<InfoWindow>();
 
         public static AboutWindow AboutWindow => SimpleIoc.Default.GetInstanceWithoutCaching<AboutWindow>();

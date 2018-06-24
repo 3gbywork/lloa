@@ -24,6 +24,10 @@
                     </MenuItem>
                 </mc:Choice>
             </mc:AlternateContent>
+            <MenuItem Header="账号(_A)">
+                <MenuItem Header="登录(_I)" Command="{Binding AccountLoginCommand}"/>
+                <MenuItem Header="登出(_O)" Command="{Binding AccountLogoutCommand}"/>
+            </MenuItem>
             <MenuItem Header="查询(_Q)">
                 <MenuItem Header="组织结构(_O)" Command="{Binding QueryOrganizationCommand}"/>
                 <MenuItem Header="月考勤(_M)" Command="{Binding QueryMonthAttDataCommand}"/>

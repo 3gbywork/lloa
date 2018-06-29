@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Collections.ObjectModel;
-using System.Linq;
-using System.Text;
+﻿using System.Collections.ObjectModel;
 
 namespace OfficeAutomationClient.Model
 {
@@ -17,13 +13,12 @@ namespace OfficeAutomationClient.Model
 
     public class Organizations : Collection<Organization>
     {
-
     }
 
     public enum OrganizationType
     {
         Company,
         SubCompany,
-        Dept,
+        Dept
     }
 }

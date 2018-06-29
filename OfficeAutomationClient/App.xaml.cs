@@ -1,16 +1,16 @@
-﻿using CommonUtility.Logging;
+﻿using System;
+using System.Windows;
+using CommonUtility.Logging;
 using GalaSoft.MvvmLight.Messaging;
 using GalaSoft.MvvmLight.Threading;
 using OfficeAutomationClient.Helper;
 using OfficeAutomationClient.OA;
 using OfficeAutomationClient.View;
-using System;
-using System.Windows;
 
 namespace OfficeAutomationClient
 {
     /// <summary>
-    /// App.xaml 的交互逻辑
+    ///     App.xaml 的交互逻辑
     /// </summary>
     public partial class App : Application
     {
@@ -21,15 +21,14 @@ namespace OfficeAutomationClient
             base.OnStartup(e);
             DispatcherHelper.Initialize();
 
+            Business.Instance.WarmUp();
+
             AppDomain.CurrentDomain.UnhandledException += (sender, arg) =>
             {
                 Logger.Error(arg.ExceptionObject as Exception, null, "程序异常终止");
             };
 
-            Messenger.Default.Register<string>(this, TMessageToken.ShowConfirmation, (msg) =>
-            {
-                MessageBox.Show(msg);
-            });
+            Messenger.Default.Register<string>(this, TMessageToken.ShowConfirmation, msg => { MessageBox.Show(msg, Business.Instance.Title, MessageBoxButton.OK, MessageBoxImage.Warning); });
 
             var rst = ViewLocator.LoginWindow.ShowDialog();
             if (rst.HasValue && rst.Value)

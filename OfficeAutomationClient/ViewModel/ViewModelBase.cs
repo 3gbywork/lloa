@@ -1,8 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Runtime.CompilerServices;
-using System.Text;
 
 namespace OfficeAutomationClient.ViewModel
 {
@@ -14,9 +11,9 @@ namespace OfficeAutomationClient.ViewModel
         public Action Show { get; set; }
         public Func<bool?> ShowDialog { get; set; }
 
-        public bool Set<T>(ref T field, T newValue, [CallerMemberName]string propertyName = "")
+        public bool Set<T>(ref T field, T newValue, [CallerMemberName] string propertyName = "")
         {
-            return Set<T>(propertyName, ref field, newValue);
+            return Set(propertyName, ref field, newValue);
         }
     }
 }

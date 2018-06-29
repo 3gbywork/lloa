@@ -1,13 +1,12 @@
-﻿using OfficeAutomationClient.Model;
-using System.Data.Entity;
+﻿using System.Data.Entity;
+using OfficeAutomationClient.Model;
 
 namespace OfficeAutomationClient.Database
 {
-    class OrganizationContext : DbContext
+    internal class OrganizationContext : DbContext
     {
         public OrganizationContext(string nameOrConnectionString) : base(nameOrConnectionString)
         {
-
         }
 
         public DbSet<Organization> Organizations { get; set; }

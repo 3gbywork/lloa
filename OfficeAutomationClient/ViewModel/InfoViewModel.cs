@@ -1,38 +1,19 @@
-﻿using CommonUtility.Logging;
+﻿using System.Collections.Generic;
+using System.Windows.Input;
+using CommonUtility.Logging;
 using GalaSoft.MvvmLight.Command;
 using OfficeAutomationClient.Helper;
-using OfficeAutomationClient.Model;
 using OfficeAutomationClient.OA;
 using OfficeAutomationClient.View;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Windows.Input;
 
 namespace OfficeAutomationClient.ViewModel
 {
     public class InfoViewModel : ViewModelBase
     {
-        private static ILogger logger = LogHelper.GetLogger<InfoViewModel>();
+        private static readonly ILogger logger = LogHelper.GetLogger<InfoViewModel>();
 
         private object _content;
         private List<object> _statusBarItems;
-
-        public string Title => Business.Instance.GetTitle();
-
-        public ICommand QueryOrganizationCommand { get; set; }
-        public ICommand QueryMonthAttDataCommand { get; set; }
-        public ICommand AboutCommand { get; set; }
-        public ICommand RebuildDatabaseCommand { get; set; }
-        public ICommand AccountLoginCommand { get; set; }
-        public ICommand AccountLogoutCommand { get; set; }
-
-        public object Content { get => _content; set { Set(ref _content, value); } }
-        public List<object> StatusBarItems
-        {
-            get => _statusBarItems; set { Set(ref _statusBarItems, value); }
-        }
 
         public InfoViewModel()
         {
@@ -46,10 +27,7 @@ namespace OfficeAutomationClient.ViewModel
             });
             QueryMonthAttDataCommand = new RelayCommand(() =>
             {
-                //var date = DateTime.Now.ToString("yyyy-MM-dd");
-                //logger.Info($"查询 {date} 月考勤 记录……");
                 Content = ViewLocator.AttendanceInfo;
-                //Business.Instance.GetAttendance(date);
             });
             AboutCommand = new RelayCommand(() =>
             {
@@ -73,6 +51,27 @@ namespace OfficeAutomationClient.ViewModel
                 Business.Instance.RebuildDatabase();
             });
 #endif
+        }
+
+        public string Title => Business.Instance.Title;
+
+        public ICommand QueryOrganizationCommand { get; set; }
+        public ICommand QueryMonthAttDataCommand { get; set; }
+        public ICommand AboutCommand { get; set; }
+        public ICommand RebuildDatabaseCommand { get; set; }
+        public ICommand AccountLoginCommand { get; set; }
+        public ICommand AccountLogoutCommand { get; set; }
+
+        public object Content
+        {
+            get => _content;
+            set => Set(ref _content, value);
+        }
+
+        public List<object> StatusBarItems
+        {
+            get => _statusBarItems;
+            set => Set(ref _statusBarItems, value);
         }
     }
 }

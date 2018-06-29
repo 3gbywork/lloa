@@ -1,30 +1,26 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Collections.ObjectModel;
+﻿using System.Collections.ObjectModel;
 using System.ComponentModel;
-using System.ComponentModel.DataAnnotations;
-using System.Linq;
-using System.Text;
 
 namespace OfficeAutomationClient.Model
 {
     public class Person
     {
         public int ID { get; set; }
-        [DisplayName("姓名")]
-        public string LastName { get; set; }
-        [DisplayName("编号")]
-        public string WorkCode { get; set; }
-        [DisplayName("性别")]
-        public string Sex { get; set; }
-        [DisplayName("状态")]
-        public string Status { get; set; }
-        [DisplayName("直接上级")]
-        public string Manager { get; set; }
-        [DisplayName("岗位")]
-        public string JobTitle { get; set; }
-        [DisplayName("显示顺序")]
-        public int DspOrder { get; set; }
+
+        [DisplayName("姓名")] public string LastName { get; set; }
+
+        [DisplayName("编号")] public string WorkCode { get; set; }
+
+        [DisplayName("性别")] public string Sex { get; set; }
+
+        [DisplayName("状态")] public string Status { get; set; }
+
+        [DisplayName("直接上级")] public string Manager { get; set; }
+
+        [DisplayName("岗位")] public string JobTitle { get; set; }
+
+        [DisplayName("显示顺序")] public int DspOrder { get; set; }
+
         public string RequestID { get; set; }
 
         public string OrganizationID { get; set; }
@@ -32,6 +28,5 @@ namespace OfficeAutomationClient.Model
 
     public class People : Collection<Person>
     {
-
     }
 }

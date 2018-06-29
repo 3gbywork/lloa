@@ -1,9 +1,8 @@
-﻿using System;
-using CommonUtility.Config;
+﻿using CommonUtility.Config;
 
 namespace OfficeAutomationClient.Helper
 {
-    class ConfigHelper
+    internal class ConfigHelper
     {
         internal static T Get<T>(string key)
         {

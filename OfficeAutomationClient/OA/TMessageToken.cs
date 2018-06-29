@@ -1,13 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-
-namespace OfficeAutomationClient.OA
+﻿namespace OfficeAutomationClient.OA
 {
-    enum TMessageToken
+    internal enum TMessageToken
     {
         UserChanged,
-        ShowConfirmation,
+        ShowConfirmation
     }
 }

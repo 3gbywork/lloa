@@ -1,35 +1,38 @@
-﻿using CommonUtility.Extension;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using CommonUtility.Extension;
 using CommonUtility.Logging;
 using GalaSoft.MvvmLight.Messaging;
 using GalaSoft.MvvmLight.Threading;
 using OfficeAutomationClient.Helper;
 using OfficeAutomationClient.OA;
 using OfficeAutomationClient.ViewModel;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 
 namespace OfficeAutomationClient.View
 {
     /// <summary>
-    /// LoginWindow.xaml 的交互逻辑
+    ///     LoginWindow.xaml 的交互逻辑
     /// </summary>
     public partial class LoginWindow : WindowBase
     {
-        private static ILogger logger = LogHelper.GetLogger<LoginWindow>();
+        private static readonly ILogger logger = LogHelper.GetLogger<LoginWindow>();
 
-        private List<string> users = new List<string>();
+        private readonly List<string> users = new List<string>();
 
         public LoginWindow()
         {
-            this.Loaded += delegate
+            Loaded += delegate
             {
+                var vm = GetViewModel<LoginViewModel>();
+                vm?.RefreshValidateCodeCommand.Execute(null);
+
                 if (users.Count == 0) return;
 
                 var user = users.Last();
                 GetPassword(user);
 
-                var vm = GetViewModel<LoginViewModel>();
+                if (null == vm) return;
                 if (vm.AutoLogin && !string.IsNullOrEmpty(user) && password.SecurePassword.Length > 0)
                 {
                     logger.Info("开始自动登陆……");
@@ -37,17 +40,17 @@ namespace OfficeAutomationClient.View
                 }
             };
 
-            Messenger.Default.Register<string>(this, TMessageToken.UserChanged, (user) =>
-             {
-                 if (IsLoaded)
-                 {
-                     GetPassword(user);
-                 }
-                 else
-                 {
-                     users.Add(user);
-                 }
-             });
+            Messenger.Default.Register<string>(this, TMessageToken.UserChanged, user =>
+            {
+                if (IsLoaded)
+                {
+                    GetPassword(user);
+                }
+                else
+                {
+                    users.Add(user);
+                }
+            });
 
             InitializeComponent();
         }

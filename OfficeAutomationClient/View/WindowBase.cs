@@ -1,10 +1,6 @@
-﻿using OfficeAutomationClient.ViewModel;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Windows;
+﻿using System.Windows;
 using System.Windows.Input;
+using OfficeAutomationClient.ViewModel;
 
 namespace OfficeAutomationClient.View
 {
@@ -16,10 +12,7 @@ namespace OfficeAutomationClient.View
             {
                 var vm = DataContext as ViewModelBase;
                 vm.Activate += Activate;
-                vm.Close += (result) =>
-                {
-                    Close(result);
-                };
+                vm.Close += result => { Close(result); };
                 vm.Hide += Hide;
                 vm.Show += Show;
                 vm.ShowDialog += ShowDialog;
@@ -62,13 +55,13 @@ namespace OfficeAutomationClient.View
             if (ShowStyle == ShowStyle.Show)
                 Close();
             else
-                this.DialogResult = result;
+                DialogResult = result;
         }
     }
 
     public enum ShowStyle
     {
         Show,
-        ShowDialog,
+        ShowDialog
     }
 }

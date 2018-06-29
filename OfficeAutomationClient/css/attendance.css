@@ -1,31 +1,31 @@
 ﻿.status {
-    width: 21px;
+    color: #fff;
+    display: block;
+    font-size: 14px;
+    font-weight: 700;
     height: 21px;
     line-height: 21px;
-    font-weight: 700;
-    color: #fff;
-    position: absolute;
-    z-index: 2;
     overflow: hidden;
-    font-size: 14px;
-    display: block;
+    position: absolute;
     text-align: center;
+    width: 21px;
+    z-index: 2;
 }
 
 .work {
+    background: #53a253;
     right: 5px;
     top: 5px;
-    background: #53a253;
 }
 
 .rest {
+    background: #e15e5e;
     right: 5px;
     top: 5px;
-    background: #e15e5e;
 }
 
 .attendance {
-    right: 5px;
-    bottom: 5px;
     background: #ffaf23;
+    bottom: 5px;
+    right: 5px;
 }

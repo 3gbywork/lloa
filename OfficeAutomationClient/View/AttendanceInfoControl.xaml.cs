@@ -6,7 +6,6 @@ using OfficeAutomationClient.OA;
 using System;
 using System.IO;
 using System.Linq;
-using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -14,15 +13,18 @@ using System.Windows.Input;
 namespace OfficeAutomationClient.View
 {
     /// <summary>
-    /// AttendanceInfoControl.xaml 的交互逻辑
+    ///     AttendanceInfoControl.xaml 的交互逻辑
     /// </summary>
     public partial class AttendanceInfoControl : UserControl
     {
+        private JsFunction _function;
+
         public AttendanceInfoControl()
         {
             InitializeComponent();
 
-            browser.ObjectForScripting = new JsFunction(browser);
+            _function = new JsFunction(browser);
+            browser.ObjectForScripting = _function;
             browser.SuppressScriptErrors(true);
 
             browser.LoadCompleted += (sender, e) =>
@@ -53,10 +55,7 @@ namespace OfficeAutomationClient.View
                 browser.InvokeScript("showCalendar", new object[] { DateTime.Now.ToString("yyyy-MM-dd") });
             };
 
-            Loaded += delegate
-            {
-                browser.Navigate(OAUrl.Calendar);
-            };
+            Loaded += delegate { browser.Navigate(OAUrl.Calendar); };
         }
 
         private string GetCityName()
@@ -88,7 +87,7 @@ namespace OfficeAutomationClient.View
             if (e.Key == Key.F5) e.Handled = true;
         }
 
-        private void RefreshAttendanceInfoClick(object sender, RoutedEventArgs e)
+        private async void RefreshAttendanceInfoClick(object sender, RoutedEventArgs e)
         {
             var btn = sender as Button;
             if (null == btn) return;
@@ -97,17 +96,10 @@ namespace OfficeAutomationClient.View
 
             var date = browser.InvokeScript("getCurrentDate") as string;
 
-            TaskEx.Run(() =>
-            {
-                Business.Instance.RemoveAttendance(date);
-                var attendance = Business.Instance.GetAndCacheAttendance(date);
+            Business.Instance.RemoveAttendance(date);
+            await _function.GetAttendance(date);
 
-                Dispatcher.Invoke(new Action(() =>
-                {
-                    browser.InvokeScript("showAttendance", new object[] { date, attendance });
-                    btn.IsEnabled = true;
-                }));
-            });
+            btn.IsEnabled = true;
         }
     }
 }

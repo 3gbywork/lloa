@@ -1,9 +1,28 @@
-﻿using CommonUtility.Extension;
+﻿using System;
+using System.Collections.Generic;
+using System.Data.Entity.Core.Mapping;
+using System.Data.Entity.Core.Metadata.Edm;
+using System.Data.Entity.Infrastructure;
+using System.IO;
+using System.Linq;
+using System.Net;
+using System.Net.Http;
+using System.Reflection;
+using System.Runtime.Caching;
+using System.Security;
+using System.Security.Cryptography;
+using System.Text;
+using System.Text.RegularExpressions;
+using System.Threading.Tasks;
+using System.Windows.Media;
+using System.Xml;
+using System.Xml.Linq;
+using System.Xml.XPath;
+using CommonUtility.Extension;
 using CommonUtility.Http;
 using CommonUtility.Logging;
 using CommonUtility.Rand;
 using CredentialManagement;
-using GalaSoft.MvvmLight.Messaging;
 using HtmlAgilityPack;
 using Newtonsoft.Json;
 using OfficeAutomationClient.Database;
@@ -11,22 +30,6 @@ using OfficeAutomationClient.Helper;
 using OfficeAutomationClient.Model;
 using OfficeAutomationClient.ViewModel;
 using Polly;
-using System;
-using System.Collections.Generic;
-using System.Drawing;
-using System.IO;
-using System.Linq;
-using System.Net;
-using System.Reflection;
-using System.Runtime.Caching;
-using System.Security;
-using System.Security.Cryptography;
-using System.Text;
-using System.Text.RegularExpressions;
-using System.Windows.Media;
-using System.Xml;
-using System.Xml.Linq;
-using System.Xml.XPath;
 using ValidateCodeProcessor;
 
 namespace OfficeAutomationClient.OA
@@ -40,15 +43,13 @@ namespace OfficeAutomationClient.OA
         private static readonly ILogger Logger = LogHelper.GetLogger<Business>();
 
         public static string AssemblyName = Assembly.GetExecutingAssembly().GetName().Name;
+        private static HttpClient _httpClient;
 
         private readonly CookieContainer _cookieContainer = new CookieContainer();
         private readonly CredentialSet _credentials;
-
-        private string _title;
-        private string _companyName;
-        private string _userId;
-        private string _validateCode;
         private string _loginCookieCheck;
+
+        private string _userId;
 
         private Business()
         {
@@ -64,6 +65,10 @@ namespace OfficeAutomationClient.OA
 
         public static Business Instance { get; } = new Business();
 
+        public string CompanyName { get; set; }
+        public string Title { get; set; }
+        public string ValidateCode { get; set; }
+
         public void Dispose()
         {
             Logout();
@@ -71,12 +76,17 @@ namespace OfficeAutomationClient.OA
             LogHelper.Shutdown();
         }
 
-        private string TryGetResponseString(string url, Dictionary<string, string> parameters = null)
+        private async Task<string> GetString(string url, Dictionary<string, string> parameters = null)
         {
             try
             {
-                return HttpWebRequestClient.Create(url).WithCookies(_cookieContainer).WithParamters(parameters)
-                    .GetResponseString();
+                if (null == parameters)
+                {
+                    return await _httpClient.GetStringAsync(url);
+                }
+
+                var response = await _httpClient.PostAsync(url, new FormUrlEncodedContent(parameters));
+                return await response.Content.ReadAsStringAsync();
             }
             catch (Exception ex)
             {
@@ -85,20 +95,7 @@ namespace OfficeAutomationClient.OA
             }
         }
 
-        private Bitmap TryGetResponseImage(string url)
-        {
-            try
-            {
-                return HttpWebRequestClient.Create(url).WithCookies(_cookieContainer).GetResponseStream().ToBitmap();
-            }
-            catch (Exception ex)
-            {
-                Logger.Error(ex, null, "获取 {0} 图片出错", url);
-                return default(Bitmap);
-            }
-        }
-
-        private static string TryGetTitle(string resp)
+        private static string GetTitle(string resp)
         {
             if (string.IsNullOrEmpty(resp)) return DefaultTitle;
             try
@@ -126,61 +123,66 @@ namespace OfficeAutomationClient.OA
             }
         }
 
-        internal ImageSource GetValidateCodeImage()
+        internal async Task<ImageSource> GetValidateCodeAsync()
         {
-            var bitmap = TryGetResponseImage(OAUrl.ValidateCode);
+            var task = _httpClient.GetStreamAsync(OAUrl.ValidateCode);
 
-            var imageSource = bitmap.ToImageSource();
-            _validateCode = bitmap.Gray().DeNoise().Binarize().Text().Trim();
+            return await task.ContinueWith(t =>
+            {
+                try
+                {
+                    var bitmap = t.Result.ToBitmap();
+                    t.Result.Dispose();
 
-            return imageSource;
+                    var imageSource = bitmap.ToImageSource();
+                    imageSource.Freeze();
+                    ValidateCode = bitmap.Gray().DeNoise().Binarize().Text().Replace(" ", "").Trim();
+
+                    return imageSource;
+                }
+                catch (Exception ex)
+                {
+                    Logger.Error(ex, null, "获取并解析验证码失败");
+                }
+
+                return null;
+            });
         }
 
-        internal string GetValidateCode()
+        internal async Task<bool> Login(LoginViewModel login, SecureString password)
         {
-            return _validateCode;
-        }
+            await GetString(OAUrl.Home);
+            var rsp = await GetString(OAUrl.Login2);
 
-        internal bool Login(LoginViewModel login, SecureString password)
-        {
-            TryGetResponseString(OAUrl.Home);
-            var rsp = TryGetResponseString(OAUrl.Login);
-
-            _title = TryGetTitle(rsp);
+            Title = GetTitle(rsp);
 
             var parameters = new Dictionary<string, string>
             {
                 {"loginfile", "/wui/theme/ecology8/page/login.jsp?templateId=3&logintype=1&gopage="},
                 {"logintype", "1"},
                 {"fontName", "微软雅黑"},
+                {"message", ""},
+                {"gopage", ""},
                 {"formmethod", "post"},
+                {"rnd", ""},
+                {"serial", ""},
+                {"username", ""},
                 {"isie", "false"},
                 {"islanguid", "7"},
                 {"loginid", login.User},
                 {"userpassword", password.CreateString()},
-                {"submit", "登录"},
                 {"validatecode", login.ValidateCode},
-
-                // login2
-                //{"message", "52"},
-                //{"gopage", ""},
-                //{"rnd", ""},
-                //{"serial", ""},
-                //{"username", ""},
+                {"submit", "登录"}
             };
-            var resp = TryGetResponseString(OAUrl.VerifyLogin, parameters);
-            if (!TryGetLoginCookieCheck(resp)) return false;
+            var resp = await GetString(OAUrl.VerifyLogin, parameters);
+            if (!GetLoginCookieCheck(resp)) return false;
 
-            var uri = new Uri(OAUrl.Home);
-
-            //_cookieContainer.Add(uri, new Cookie("logincookiecheck", _loginCookieCheck));
-            //TryGetResponseString(OAUrl.RemindLogin);
+            _cookieContainer.Add(new Uri(OAUrl.Login), new Cookie("logincookiecheck", _loginCookieCheck, "/login/"));
+            await GetString(OAUrl.RemindLogin);
             //_cookieContainer.GetCookies(uri)["logincookiecheck"].Expires = DateTime.Now.AddDays(-1);
 
-            //TryGetResponseString(OAUrl.ServerStatusLogin);
-
-            _userId = _cookieContainer.GetCookies(uri)["loginidweaver"].Value;
-            _companyName = TryGetCompanyName(TryGetResponseString(OAUrl.SysRemind));
+            _userId = _cookieContainer.GetCookies(new Uri(OAUrl.Home))["loginidweaver"].Value;
+            CompanyName = TryGetCompanyName(await GetString(OAUrl.SysRemind));
 
             if (login.RememberPwd)
             {
@@ -194,7 +196,7 @@ namespace OfficeAutomationClient.OA
             return true;
         }
 
-        private bool TryGetLoginCookieCheck(string resp)
+        private bool GetLoginCookieCheck(string resp)
         {
             try
             {
@@ -213,14 +215,11 @@ namespace OfficeAutomationClient.OA
             return false;
         }
 
-        internal void Logout()
+        internal async void Logout()
         {
             if (!string.IsNullOrEmpty(_loginCookieCheck))
                 _cookieContainer.Add(new Uri(OAUrl.Home), new Cookie("logincookiecheck", _loginCookieCheck));
-            TryGetResponseString(OAUrl.Logout);
-
-            //_cookieContainer = new CookieContainer();
-            //TryGetResponseString(OAUrl.Refresh);
+            await GetString(OAUrl.Logout);
         }
 
         private void SaveOrUpdateCredential(string user, SecureString password)
@@ -251,7 +250,7 @@ namespace OfficeAutomationClient.OA
             }
         }
 
-        internal string GetAndCacheAttendance(string date)
+        internal async Task<string> GetAndCacheAttendance(string date)
         {
             try
             {
@@ -261,13 +260,11 @@ namespace OfficeAutomationClient.OA
                 {
                     return cache[key] as string;
                 }
-                else
-                {
-                    var rst = GetAttendanceJson(date);
-                    if (!string.IsNullOrEmpty(rst))
-                        cache.Set(key, rst, DateTimeOffset.MaxValue);
-                    return rst;
-                }
+
+                var rst = await GetAttendanceJson(date);
+                if (!string.IsNullOrEmpty(rst))
+                    cache.Set(key, rst, DateTimeOffset.MaxValue);
+                return rst;
             }
             catch (Exception ex)
             {
@@ -277,15 +274,15 @@ namespace OfficeAutomationClient.OA
             return string.Empty;
         }
 
-        private string GetAttendanceJson(string date)
+        private async Task<string> GetAttendanceJson(string date)
         {
-            var attInfo = GetAttendance(date);
+            var attInfo = await GetAttendance(date);
             if (null == attInfo || attInfo.Count == 0) return string.Empty;
 
             return JsonConvert.SerializeObject(attInfo);
         }
 
-        internal List<AttendanceInfo> GetAttendance(string date)
+        internal async Task<List<AttendanceInfo>> GetAttendance(string date)
         {
             var deptID = GetDepartmentID(_userId);
             var companyID = GetCompanyID(deptID);
@@ -300,14 +297,15 @@ namespace OfficeAutomationClient.OA
                 {"rstr", RandomEx.NextString(10)},
                 {"subCompanyId", companyID}
             };
-            var attdata = TryGetResponseString(OAUrl.MonthAttData, parameters);
+            var attdata = await GetString(OAUrl.MonthAttData, parameters);
 
             try
             {
                 var html = new HtmlDocument();
                 html.LoadHtml(attdata);
 
-                var rstNode = html.DocumentNode.SelectSingleNode("//table[@id=\"monthAttData\"]").ChildNodes.Where(n => n.Name.Equals("tr")).Last();
+                var rstNode = html.DocumentNode.SelectSingleNode("//table[@id=\"monthAttData\"]").ChildNodes
+                    .Where(n => n.Name.Equals("tr")).Last();
                 var attrst = rstNode.ChildNodes.Where(n => n.Name.Equals("td")).Skip(2).Select(n =>
                 {
                     var info = new AttendanceInfo();
@@ -321,6 +319,7 @@ namespace OfficeAutomationClient.OA
                     {
                         info.Holiday = false;
                     }
+
                     return info;
                 }).ToList();
 
@@ -341,7 +340,7 @@ namespace OfficeAutomationClient.OA
                 using (var context = new OrganizationContext(DbFileName))
                 {
                     // 避免死循环，查询10个层次
-                    for (int i = 10; i > 0; i--)
+                    for (var i = 10; i > 0; i--)
                     {
                         var org = context.Organizations.Single(o => o.ID.Equals(deptID));
                         if (org.Type == OrganizationType.Company || org.Type == OrganizationType.SubCompany)
@@ -403,15 +402,46 @@ namespace OfficeAutomationClient.OA
             return new SecureString();
         }
 
-        internal string GetTitle()
+        public void WarmUp()
         {
-            return _title;
+            // 预热HttpClient
+            // 参考：https://www.cnblogs.com/dudu/p/csharp-httpclient-attention.html
+            // DON'T USE WebRequestHandler!!!!!! that will cause deadlock
+            _httpClient = new HttpClient(new HttpClientHandler
+            {
+                AllowAutoRedirect = true,
+                UseCookies = true,
+                CookieContainer = _cookieContainer
+            });
+            _httpClient.DefaultRequestHeaders.ExpectContinue = false;
+            _httpClient.DefaultRequestHeaders.ConnectionClose = false;
+            _httpClient.DefaultRequestHeaders.Add("Connection", "Keep-Alive");
+            _httpClient.DefaultRequestHeaders.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) OfficeAutomationClient/20180628");
+
+            // 热身
+            _httpClient.SendAsync(new HttpRequestMessage
+            {
+                Method = new HttpMethod("HEAD"),
+                RequestUri = new Uri(OAUrl.Home),
+            }).Result.EnsureSuccessStatusCode();
+
+
+            // 预热entity framework
+            // 参考：https://www.cnblogs.com/dudu/p/entity-framework-warm-up.html
+            using (var context = new OrganizationContext(DbFileName))
+            {
+                var objectContext = ((IObjectContextAdapter)context).ObjectContext;
+                var mappingCollection = (StorageMappingItemCollection)objectContext
+                    .MetadataWorkspace.GetItemCollection(DataSpace.CSSpace);
+                mappingCollection.GenerateViews(new List<EdmSchemaError>());
+            }
         }
 
 #if INIT_ORGANIZATION_DB
-        private readonly Func<int, TimeSpan> _delayDurationProvider = attempt => TimeSpan.FromSeconds(Math.Min(5, Math.Pow(2, attempt - 1)));
+        private readonly Func<int, TimeSpan> _delayDurationProvider =
+            attempt => TimeSpan.FromSeconds(Math.Min(5, Math.Pow(2, attempt - 1)));
 
-        internal Organizations GetOrganizations()
+        internal Task<Organizations> GetOrganizations()
         {
             var parameters = new Dictionary<string, string>
             {
@@ -431,19 +461,20 @@ namespace OfficeAutomationClient.OA
             };
 
             return Policy<Organizations>.HandleResult(r => null == r || r.Count == 0)
-                   .Or<Exception>()
-                   .WaitAndRetryForever(_delayDurationProvider)
-                   .Execute(() => JsonConvert.DeserializeObject<Organizations>(TryGetResponseString(OAUrl.Organization, parameters)));
+                .Or<Exception>()
+                .WaitAndRetryForever(_delayDurationProvider)
+                .ExecuteAsync(async () =>
+                    JsonConvert.DeserializeObject<Organizations>(await GetString(OAUrl.Organization, parameters)));
         }
 
-        internal People GetPeople(Organization dept)
+        internal async Task<People> GetPeople(Organization dept)
         {
             var people = new People();
             if (dept.Type != OrganizationType.Dept) return people;
 
             try
             {
-                var resp = TryGetResponseString($"{OAUrl.HrmResourceList}{dept.ID.Substring(1)}");
+                var resp = await GetString($"{OAUrl.HrmResourceList}{dept.ID.Substring(1)}");
                 var tableString = Regex.Match(resp, "__tableStringKey__='(.+)'").Value.Split('\'')[1];
 
                 var pageIndex = 1;
@@ -462,9 +493,9 @@ namespace OfficeAutomationClient.OA
                         {"pageId", "Hrm:ResourceList"}
                     };
 
-                    resp = Policy<string>.HandleResult(r => !(!string.IsNullOrEmpty(r) && r.StartsWith("<?xml")))
-                           .WaitAndRetryForever(_delayDurationProvider)
-                           .Execute(() => TryGetResponseString(OAUrl.SplitPage, parameters));
+                    resp = await Policy<string>.HandleResult(r => !(!string.IsNullOrEmpty(r) && r.StartsWith("<?xml")))
+                        .WaitAndRetryForever(_delayDurationProvider)
+                        .ExecuteAsync(async () => await GetString(OAUrl.SplitPage, parameters));
 
                     using (var reader = new StringReader(resp))
                     {
@@ -493,7 +524,7 @@ namespace OfficeAutomationClient.OA
             return people;
         }
 
-        internal PersonalDetail GetPersonalDetail(Person person)
+        internal async Task<PersonalDetail> GetPersonalDetail(Person person)
         {
             var detail = new PersonalDetail();
             if (string.IsNullOrEmpty(person.RequestID)) return default(PersonalDetail);
@@ -503,26 +534,28 @@ namespace OfficeAutomationClient.OA
                 var parameter = new Dictionary<string, string>
                 {
                     {"isfromtab", "true"},
-                    {"id", person.RequestID.ToString()},
-                    {"fromHrmTab", "1"},
+                    {"id", person.RequestID},
+                    {"fromHrmTab", "1"}
                 };
 
                 var html = new HtmlDocument();
-                var detailsDic = Policy<Dictionary<string, string>>
+                var detailsDic = await Policy<Dictionary<string, string>>
                     .HandleResult(r => null == r || r.Count == 0)
                     .WaitAndRetryForever(_delayDurationProvider)
-                    .Execute(() =>
+                    .ExecuteAsync(async () =>
                     {
-                        var resp = TryGetResponseString(OAUrl.HrmResourceBase, parameter);
+                        var resp = await GetString(OAUrl.HrmResourceBase, parameter);
                         html.LoadHtml(resp);
 
-                        var names = (from name in html.DocumentNode.SelectNodes("//td[@class=\"fieldName\"]") select name.InnerHtml.HtmlDecode().Trim()).ToList();
-                        var values = (from value in html.DocumentNode.SelectNodes("//td[@class=\"field\"]") select value.InnerText.HtmlDecode().Trim()).ToList();
+                        var names = (from name in html.DocumentNode.SelectNodes("//td[@class=\"fieldName\"]")
+                            select name.InnerHtml.HtmlDecode().Trim()).ToList();
+                        var values = (from value in html.DocumentNode.SelectNodes("//td[@class=\"field\"]")
+                            select value.InnerText.HtmlDecode().Trim()).ToList();
 
                         var rstdic = new Dictionary<string, string>();
                         if (names.Count == 0 || values.Count == 0 || names.Count != values.Count) return rstdic;
 
-                        for (int i = 0; i < names.Count; i++)
+                        for (var i = 0; i < names.Count; i++)
                         {
                             rstdic.Add(names[i], values[i]);
                         }
@@ -568,7 +601,8 @@ namespace OfficeAutomationClient.OA
                                 {
                                     case "lastname":
                                         person.LastName = value;
-                                        person.RequestID = Regex.Match(element.Value, "\\((.+)\\)").Value.Trim('(', ')');
+                                        person.RequestID = Regex.Match(element.Value, "\\((.+)\\)").Value
+                                            .Trim('(', ')');
                                         break;
                                     case "workcode":
                                         person.WorkCode = value;

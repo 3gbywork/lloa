@@ -1,18 +1,17 @@
-﻿using CommonUtility.Logging;
+﻿using System;
+using CommonUtility.Logging;
 using Microsoft.Win32;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 
 namespace OfficeAutomationClient.Helper
 {
-    class RegistryHelper
+    internal class RegistryHelper
     {
-        private static ILogger Logger = LogHelper.GetLogger<RegistryHelper>();
-
         public const string IE = @"SOFTWARE\Microsoft\Internet Explorer";
-        public const string FEATURE_BROWSER_EMULATION = @"Software\Microsoft\Internet Explorer\Main\FeatureControl\FEATURE_BROWSER_EMULATION";
+
+        public const string FEATURE_BROWSER_EMULATION =
+            @"Software\Microsoft\Internet Explorer\Main\FeatureControl\FEATURE_BROWSER_EMULATION";
+
+        private static readonly ILogger Logger = LogHelper.GetLogger<RegistryHelper>();
 
         internal static IEVersion GetIEVersion()
         {
@@ -21,7 +20,7 @@ namespace OfficeAutomationClient.Helper
             {
                 try
                 {
-                    version = (string)key.GetValue("svcVersion");
+                    version = (string) key.GetValue("svcVersion");
                 }
                 catch (Exception ex)
                 {
@@ -29,7 +28,7 @@ namespace OfficeAutomationClient.Helper
 
                     try
                     {
-                        version = (string)key.GetValue("Version");
+                        version = (string) key.GetValue("Version");
                     }
                     catch (Exception e)
                     {
@@ -45,6 +44,7 @@ namespace OfficeAutomationClient.Helper
                 if (version.StartsWith("9")) return IEVersion.V9;
                 if (version.StartsWith("8")) return IEVersion.V8;
             }
+
             return IEVersion.None;
         }
 
@@ -54,7 +54,7 @@ namespace OfficeAutomationClient.Helper
             {
                 try
                 {
-                    key.SetValue(appName, (int)version, RegistryValueKind.DWord);
+                    key.SetValue(appName, (int) version, RegistryValueKind.DWord);
                 }
                 catch (Exception ex)
                 {
@@ -64,12 +64,12 @@ namespace OfficeAutomationClient.Helper
         }
     }
 
-    enum IEVersion
+    internal enum IEVersion
     {
         None,
         V11 = 11001,
         V10 = 10001,
         V9 = 9999,
-        V8 = 8888,
+        V8 = 8888
     }
 }

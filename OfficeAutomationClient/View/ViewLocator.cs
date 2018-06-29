@@ -1,9 +1,5 @@
 ﻿using CommonServiceLocator;
 using GalaSoft.MvvmLight.Ioc;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 
 namespace OfficeAutomationClient.View
 {
@@ -24,6 +20,8 @@ namespace OfficeAutomationClient.View
         public static InfoWindow InfoWindow => ServiceLocator.Current.GetInstance<InfoWindow>();
 
         public static AboutWindow AboutWindow => SimpleIoc.Default.GetInstanceWithoutCaching<AboutWindow>();
-        public static AttendanceInfoControl AttendanceInfo => SimpleIoc.Default.GetInstanceWithoutCaching<AttendanceInfoControl>();
+
+        public static AttendanceInfoControl AttendanceInfo =>
+            SimpleIoc.Default.GetInstanceWithoutCaching<AttendanceInfoControl>();
     }
 }

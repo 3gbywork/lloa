@@ -76,6 +76,150 @@ namespace OfficeAutomationClient.OA
             LogHelper.Shutdown();
         }
 
+        #region 账号读取和保存
+
+        private void SaveOrUpdateCredential(string user, SecureString password)
+        {
+            var credential = _credentials.Find(c => string.Equals(c.Username, user)) ?? new Credential(user)
+            {
+                PersistanceType = PersistanceType.LocalComputer,
+                Type = CredentialType.Generic,
+                Target = $"{CredentialSetTarget}:{Guid.NewGuid()}"
+            };
+            credential.Password = ProtectedData
+                .Protect(Encoding.UTF8.GetBytes(password.CreateString()), null, DataProtectionScope.CurrentUser)
+                .ToBase64String();
+            credential.Save();
+            _credentials.Load();
+        }
+
+        internal List<string> GetUsers()
+        {
+            return _credentials.Where(c => c.Target.StartsWith(CredentialSetTarget)).Select(c => c.Username).ToList();
+        }
+
+        internal SecureString QueryPassword(string username)
+        {
+            var user = _credentials.Find(c => c.Target.StartsWith(CredentialSetTarget) && c.Username.Equals(username));
+            if (null != user)
+            {
+                try
+                {
+                    return ProtectedData
+                        .Unprotect(user.SecurePassword.CreateString().FromBase64String(), null,
+                            DataProtectionScope.CurrentUser).ToString(Encoding.UTF8).CreateSecureString();
+                }
+                catch (Exception ex)
+                {
+                    Logger.Error(ex, null, "解析 {0} 的密码失败", username);
+                }
+            }
+
+            return new SecureString();
+        }
+
+        #endregion
+
+        #region 数据库查询
+
+        private string GetCompanyID(string deptID)
+        {
+            try
+            {
+                using (var context = new OrganizationContext(DbFileName))
+                {
+                    // 避免死循环，查询10个层次
+                    for (var i = 10; i > 0; i--)
+                    {
+                        var org = context.Organizations.Single(o => o.ID.Equals(deptID));
+                        if (org.Type == OrganizationType.Company || org.Type == OrganizationType.SubCompany)
+                        {
+                            return org.ID;
+                        }
+
+                        deptID = org.PID;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.Error(ex, null, "获取部门 {0} 所属公司出错", deptID);
+            }
+
+            return string.Empty;
+        }
+
+        private string GetDepartmentID(string userID)
+        {
+            try
+            {
+                using (var context = new OrganizationContext(DbFileName))
+                {
+                    return context.People.Single(p => p.RequestID.Equals(userID)).OrganizationID;
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.Error(ex, null, "获取员工 {0} 所属部门出错", userID);
+            }
+
+            return string.Empty;
+        }
+
+        #endregion
+
+        #region HTML解析
+
+        private static string TryMatch(string input, string pattern, string defaultValue)
+        {
+            try
+            {
+                var match = Regex.Match(input, pattern);
+                if (!string.IsNullOrEmpty(match.Value))
+                {
+                    return match.Value.Split('=')[1].Trim('\'', '\"', ' ');
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.Error(ex, null, "解析 {0} 出错", new { input = input.JavaScriptStringEncode(), pattern });
+            }
+            return defaultValue;
+        }
+
+        private static string GetTitle(string resp)
+        {
+            return TryMatch(resp, "document.title='(.+)'", DefaultTitle);
+        }
+
+        private static string GetCompanyName(string resp)
+        {
+            return TryMatch(resp, "companyname = \"(.+)\"", DefaultCompany);
+        }
+
+        private static string GetLoginCookie(string resp)
+        {
+            return TryMatch(resp, "logincookiecheck=(.+)'", string.Empty);
+        }
+
+        private static string GetPaidLeaveDays(string resp)
+        {
+            if (string.IsNullOrEmpty(resp)) return string.Empty;
+            try
+            {
+                return resp.HtmlDecode().Split(':')[1].Trim();
+            }
+            catch (Exception ex)
+            {
+                Logger.Error(ex, null, "解析可用调休天数出错，resp：{0}", resp.JavaScriptStringEncode());
+            }
+            return string.Empty;
+        }
+
+        #endregion
+
+        #region 业务API（模拟请求）
+
         private async Task<string> GetString(string url, Dictionary<string, string> parameters = null)
         {
             try
@@ -95,33 +239,7 @@ namespace OfficeAutomationClient.OA
             }
         }
 
-        private static string GetTitle(string resp)
-        {
-            if (string.IsNullOrEmpty(resp)) return DefaultTitle;
-            try
-            {
-                return Regex.Match(resp, "document.title='(.+)'").Value.Split('\'')[1];
-            }
-            catch (Exception ex)
-            {
-                Logger.Error(ex, null, "解析 title 出错，resp：{0}", resp);
-                return DefaultTitle;
-            }
-        }
-
-        private static string TryGetCompanyName(string resp)
-        {
-            if (string.IsNullOrEmpty(resp)) return DefaultCompany;
-            try
-            {
-                return Regex.Match(resp, "companyname = \"(.+)\"").Value.Split('\"')[1];
-            }
-            catch (Exception ex)
-            {
-                Logger.Error(ex, null, "解析 companyname 出错");
-                return DefaultCompany;
-            }
-        }
+        #region 获取验证码
 
         internal async Task<ImageSource> GetValidateCodeAsync()
         {
@@ -149,6 +267,10 @@ namespace OfficeAutomationClient.OA
             });
         }
 
+        #endregion
+
+        #region 登录登出
+
         internal async Task<bool> Login(LoginViewModel login, SecureString password)
         {
             await GetString(OAUrl.Home);
@@ -175,14 +297,15 @@ namespace OfficeAutomationClient.OA
                 {"submit", "登录"}
             };
             var resp = await GetString(OAUrl.VerifyLogin, parameters);
-            if (!GetLoginCookieCheck(resp)) return false;
+            _loginCookieCheck = GetLoginCookie(resp);
+            if (string.IsNullOrEmpty(_loginCookieCheck)) return false;
 
             _cookieContainer.Add(new Uri(OAUrl.Login), new Cookie("logincookiecheck", _loginCookieCheck, "/login/"));
             await GetString(OAUrl.RemindLogin);
             //_cookieContainer.GetCookies(uri)["logincookiecheck"].Expires = DateTime.Now.AddDays(-1);
 
             _userId = _cookieContainer.GetCookies(new Uri(OAUrl.Home))["loginidweaver"].Value;
-            CompanyName = TryGetCompanyName(await GetString(OAUrl.SysRemind));
+            CompanyName = GetCompanyName(await GetString(OAUrl.SysRemind));
 
             if (login.RememberPwd)
             {
@@ -196,25 +319,6 @@ namespace OfficeAutomationClient.OA
             return true;
         }
 
-        private bool GetLoginCookieCheck(string resp)
-        {
-            try
-            {
-                var match = Regex.Match(resp, "logincookiecheck=(.+)'");
-                if (!string.IsNullOrEmpty(match.Value))
-                {
-                    _loginCookieCheck = match.Value.Split('=')[1].TrimEnd('\'');
-                    return !string.IsNullOrEmpty(_loginCookieCheck);
-                }
-            }
-            catch (Exception ex)
-            {
-                Logger.Error(ex, null, "解析 logincookiecheck 出错，{0}", resp);
-            }
-
-            return false;
-        }
-
         internal async void Logout()
         {
             if (!string.IsNullOrEmpty(_loginCookieCheck))
@@ -222,20 +326,9 @@ namespace OfficeAutomationClient.OA
             await GetString(OAUrl.Logout);
         }
 
-        private void SaveOrUpdateCredential(string user, SecureString password)
-        {
-            var credential = _credentials.Find(c => string.Equals(c.Username, user)) ?? new Credential(user)
-            {
-                PersistanceType = PersistanceType.LocalComputer,
-                Type = CredentialType.Generic,
-                Target = $"{CredentialSetTarget}:{Guid.NewGuid()}"
-            };
-            credential.Password = ProtectedData
-                .Protect(Encoding.UTF8.GetBytes(password.CreateString()), null, DataProtectionScope.CurrentUser)
-                .ToBase64String();
-            credential.Save();
-            _credentials.Load();
-        }
+        #endregion
+
+        #region 获取/缓存/清除缓存考勤信息
 
         internal void RemoveAttendance(string date)
         {
@@ -327,115 +420,15 @@ namespace OfficeAutomationClient.OA
             }
             catch (Exception ex)
             {
-                Logger.Error(ex, null, "解析考勤数据出错，date：{0}，response：{1}", date, attdata);
+                Logger.Error(ex, null, "解析考勤数据出错，date：{0}，response：{1}", date, attdata.JavaScriptStringEncode());
             }
 
             return Enumerable.Empty<AttendanceInfo>().ToList();
         }
 
-        private string GetCompanyID(string deptID)
-        {
-            try
-            {
-                using (var context = new OrganizationContext(DbFileName))
-                {
-                    // 避免死循环，查询10个层次
-                    for (var i = 10; i > 0; i--)
-                    {
-                        var org = context.Organizations.Single(o => o.ID.Equals(deptID));
-                        if (org.Type == OrganizationType.Company || org.Type == OrganizationType.SubCompany)
-                        {
-                            return org.ID;
-                        }
+        #endregion
 
-                        deptID = org.PID;
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                Logger.Error(ex, null, "获取部门 {0} 所属公司出错", deptID);
-            }
-
-            return string.Empty;
-        }
-
-        private string GetDepartmentID(string userID)
-        {
-            try
-            {
-                using (var context = new OrganizationContext(DbFileName))
-                {
-                    return context.People.Single(p => p.RequestID.Equals(userID)).OrganizationID;
-                }
-            }
-            catch (Exception ex)
-            {
-                Logger.Error(ex, null, "获取员工 {0} 所属部门出错", userID);
-            }
-
-            return string.Empty;
-        }
-
-        internal List<string> GetUsers()
-        {
-            return _credentials.Where(c => c.Target.StartsWith(CredentialSetTarget)).Select(c => c.Username).ToList();
-        }
-
-        internal SecureString QueryPassword(string username)
-        {
-            var user = _credentials.Find(c => c.Target.StartsWith(CredentialSetTarget) && c.Username.Equals(username));
-            if (null != user)
-            {
-                try
-                {
-                    return ProtectedData
-                        .Unprotect(user.SecurePassword.CreateString().FromBase64String(), null,
-                            DataProtectionScope.CurrentUser).ToString(Encoding.UTF8).CreateSecureString();
-                }
-                catch (Exception ex)
-                {
-                    Logger.Error(ex, null, "解析 {0} 的密码失败", username);
-                }
-            }
-
-            return new SecureString();
-        }
-
-        public void WarmUp()
-        {
-            // 预热HttpClient
-            // 参考：https://www.cnblogs.com/dudu/p/csharp-httpclient-attention.html
-            // DON'T USE WebRequestHandler!!!!!! that will cause deadlock
-            _httpClient = new HttpClient(new HttpClientHandler
-            {
-                AllowAutoRedirect = true,
-                UseCookies = true,
-                CookieContainer = _cookieContainer
-            });
-            _httpClient.DefaultRequestHeaders.ExpectContinue = false;
-            _httpClient.DefaultRequestHeaders.ConnectionClose = false;
-            _httpClient.DefaultRequestHeaders.Add("Connection", "Keep-Alive");
-            _httpClient.DefaultRequestHeaders.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) OfficeAutomationClient/20180628");
-
-            // 热身
-            _httpClient.SendAsync(new HttpRequestMessage
-            {
-                Method = new HttpMethod("HEAD"),
-                RequestUri = new Uri(OAUrl.Home),
-            }).Result.EnsureSuccessStatusCode();
-
-
-            // 预热entity framework
-            // 参考：https://www.cnblogs.com/dudu/p/entity-framework-warm-up.html
-            using (var context = new OrganizationContext(DbFileName))
-            {
-                var objectContext = ((IObjectContextAdapter)context).ObjectContext;
-                var mappingCollection = (StorageMappingItemCollection)objectContext
-                    .MetadataWorkspace.GetItemCollection(DataSpace.CSSpace);
-                mappingCollection.GenerateViews(new List<EdmSchemaError>());
-            }
-        }
+        #region 获取组织结构信息
 
 #if INIT_ORGANIZATION_DB
         private readonly Func<int, TimeSpan> _delayDurationProvider =
@@ -644,5 +637,61 @@ namespace OfficeAutomationClient.OA
             }
         }
 #endif
+
+        #endregion
+
+        #region 获取调休天数
+
+        internal async Task<string> GetPaidLeaveDays()
+        {
+            var parameters = new Dictionary<string, string>
+            {
+                {"operation", "getTXInfo"},
+                {"resourceId", _userId},
+                {"currentDate", ""},
+            };
+
+            var resp = await GetString(OAUrl.PaidLeaveDays, parameters);
+            return GetPaidLeaveDays(resp);
+        }
+
+        #endregion
+
+        #endregion
+
+        public void WarmUp()
+        {
+            // 预热HttpClient
+            // 参考：https://www.cnblogs.com/dudu/p/csharp-httpclient-attention.html
+            // DON'T USE WebRequestHandler!!!!!! that will cause deadlock
+            _httpClient = new HttpClient(new HttpClientHandler
+            {
+                AllowAutoRedirect = true,
+                UseCookies = true,
+                CookieContainer = _cookieContainer
+            });
+            _httpClient.DefaultRequestHeaders.ExpectContinue = false;
+            _httpClient.DefaultRequestHeaders.ConnectionClose = false;
+            _httpClient.DefaultRequestHeaders.Add("Connection", "Keep-Alive");
+            _httpClient.DefaultRequestHeaders.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) OfficeAutomationClient/20180628");
+
+            // 热身
+            _httpClient.SendAsync(new HttpRequestMessage
+            {
+                Method = new HttpMethod("HEAD"),
+                RequestUri = new Uri(OAUrl.Home),
+            }).Result.EnsureSuccessStatusCode();
+
+
+            // 预热entity framework
+            // 参考：https://www.cnblogs.com/dudu/p/entity-framework-warm-up.html
+            using (var context = new OrganizationContext(DbFileName))
+            {
+                var objectContext = ((IObjectContextAdapter)context).ObjectContext;
+                var mappingCollection = (StorageMappingItemCollection)objectContext
+                    .MetadataWorkspace.GetItemCollection(DataSpace.CSSpace);
+                mappingCollection.GenerateViews(new List<EdmSchemaError>());
+            }
+        }
     }
 }

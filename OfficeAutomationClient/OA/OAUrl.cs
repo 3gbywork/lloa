@@ -33,5 +33,10 @@
 
         public const string MonthAttData = Home + "/hrm/report/schedulediff/HrmScheduleDiffMonthAttData.jsp";
         public const string Calendar = "http://yun.rili.cn/wnl/index.html";
+
+        /// <summary>
+        /// 调休天数
+        /// </summary>
+        public const string PaidLeaveDays = Home + "/workflow/request/BillBoHaiLeaveXMLHTTP.jsp";
     }
 }

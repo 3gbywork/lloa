@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Threading.Tasks;
 using System.Windows;
 using CommonUtility.Logging;
 using GalaSoft.MvvmLight.Messaging;
@@ -16,12 +17,20 @@ namespace OfficeAutomationClient
     {
         private static readonly ILogger Logger = LogHelper.GetLogger<App>();
 
-        protected override void OnStartup(StartupEventArgs e)
+        protected override async void OnStartup(StartupEventArgs e)
         {
-            base.OnStartup(e);
-            DispatcherHelper.Initialize();
+            var splash = new SplashScreenWindow("../Resources/splash.gif");
+            splash.Show();
 
-            Business.Instance.WarmUp();
+            base.OnStartup(e);
+
+            await TaskEx.Run(() =>
+            {
+                DispatcherHelper.Initialize();
+                Business.Instance.WarmUp();
+            });
+
+            splash.Close();
 
             AppDomain.CurrentDomain.UnhandledException += (sender, arg) =>
             {

@@ -40,12 +40,13 @@ namespace OfficeAutomationClient.OA
         private const string DefaultCompany = "办公自动化系统";
         private const string CredentialSetTarget = "OfficeAutomationClient";
         private const string DbFileName = "organization.db";
+        private static readonly byte[] OptionalEntropy = Encoding.UTF8.GetBytes("3.141592653589793238462643383279");
         private static readonly ILogger Logger = LogHelper.GetLogger<Business>();
 
         public static string AssemblyName = Assembly.GetExecutingAssembly().GetName().Name;
         private static HttpClient _httpClient;
 
-        private readonly CookieContainer _cookieContainer = new CookieContainer();
+        private static readonly CookieContainer CookieContainer = new CookieContainer();
         private readonly CredentialSet _credentials;
         private string _loginCookieCheck;
 
@@ -87,7 +88,7 @@ namespace OfficeAutomationClient.OA
                 Target = $"{CredentialSetTarget}:{Guid.NewGuid()}"
             };
             credential.Password = ProtectedData
-                .Protect(Encoding.UTF8.GetBytes(password.CreateString()), null, DataProtectionScope.CurrentUser)
+                .Protect(Encoding.UTF8.GetBytes(password.CreateString()), OptionalEntropy, DataProtectionScope.CurrentUser)
                 .ToBase64String();
             credential.Save();
             _credentials.Load();
@@ -106,7 +107,7 @@ namespace OfficeAutomationClient.OA
                 try
                 {
                     return ProtectedData
-                        .Unprotect(user.SecurePassword.CreateString().FromBase64String(), null,
+                        .Unprotect(user.SecurePassword.CreateString().FromBase64String(), OptionalEntropy,
                             DataProtectionScope.CurrentUser).ToString(Encoding.UTF8).CreateSecureString();
                 }
                 catch (Exception ex)
@@ -300,11 +301,11 @@ namespace OfficeAutomationClient.OA
             _loginCookieCheck = GetLoginCookie(resp);
             if (string.IsNullOrEmpty(_loginCookieCheck)) return false;
 
-            _cookieContainer.Add(new Uri(OAUrl.Login), new Cookie("logincookiecheck", _loginCookieCheck, "/login/"));
+            CookieContainer.Add(new Uri(OAUrl.Login), new Cookie("logincookiecheck", _loginCookieCheck, "/login/"));
             await GetString(OAUrl.RemindLogin);
             //_cookieContainer.GetCookies(uri)["logincookiecheck"].Expires = DateTime.Now.AddDays(-1);
 
-            _userId = _cookieContainer.GetCookies(new Uri(OAUrl.Home))["loginidweaver"].Value;
+            _userId = CookieContainer.GetCookies(new Uri(OAUrl.Home))["loginidweaver"].Value;
             CompanyName = GetCompanyName(await GetString(OAUrl.SysRemind));
 
             if (login.RememberPwd)
@@ -322,8 +323,13 @@ namespace OfficeAutomationClient.OA
         internal async void Logout()
         {
             if (!string.IsNullOrEmpty(_loginCookieCheck))
-                _cookieContainer.Add(new Uri(OAUrl.Home), new Cookie("logincookiecheck", _loginCookieCheck));
+                CookieContainer.Add(new Uri(OAUrl.Home), new Cookie("logincookiecheck", _loginCookieCheck));
             await GetString(OAUrl.Logout);
+
+            foreach (Cookie cookie in CookieContainer.GetCookies(new Uri(OAUrl.Home)))
+            {
+                cookie.Expired = true;
+            }
         }
 
         #endregion
@@ -668,7 +674,7 @@ namespace OfficeAutomationClient.OA
             {
                 AllowAutoRedirect = true,
                 UseCookies = true,
-                CookieContainer = _cookieContainer
+                CookieContainer = CookieContainer
             });
             _httpClient.DefaultRequestHeaders.ExpectContinue = false;
             _httpClient.DefaultRequestHeaders.ConnectionClose = false;

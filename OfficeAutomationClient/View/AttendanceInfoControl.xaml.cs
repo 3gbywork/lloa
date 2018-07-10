@@ -9,6 +9,7 @@ using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using CommonUtility.Logging;
 
 namespace OfficeAutomationClient.View
 {
@@ -17,6 +18,7 @@ namespace OfficeAutomationClient.View
     /// </summary>
     public partial class AttendanceInfoControl : UserControl
     {
+        private static readonly ILogger Logger = LogHelper.GetLogger<AttendanceInfoControl>();
         private JsFunction _function;
 
         public AttendanceInfoControl()
@@ -30,7 +32,12 @@ namespace OfficeAutomationClient.View
             browser.LoadCompleted += (sender, e) =>
             {
                 // 屏蔽右键菜单
-                (browser.Document as HTMLDocumentEvents_Event).oncontextmenu += delegate { return false; };
+                (browser.Document as HTMLDocumentEvents_Event).oncontextmenu += () => false;
+                (browser.Document as HTMLDocumentEvents2_Event).onerrorupdate += (evt) =>
+                {
+                    Logger.Error(evt);
+                    return true;
+                };
                 var dom = browser.Document as HTMLDocument;
 
                 // 清空头部文字及下载链接
@@ -94,12 +101,21 @@ namespace OfficeAutomationClient.View
 
             btn.IsEnabled = false;
 
-            var date = browser.InvokeScript("getCurrentDate") as string;
+            try
+            {
+                var date = browser.InvokeScript("getCurrentDate") as string;
 
-            Business.Instance.RemoveAttendance(date);
-            await _function.GetAttendance(date);
-
-            btn.IsEnabled = true;
+                Business.Instance.RemoveAttendance(date);
+                await _function.GetAttendance(date);
+            }
+            catch (Exception ex)
+            {
+                Logger.Error(ex, null, "刷新考勤数据出错");
+            }
+            finally
+            {
+                btn.IsEnabled = true;
+            }
         }
     }
 }

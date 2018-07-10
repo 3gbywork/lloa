@@ -244,7 +244,16 @@
     <Content Include="js\attendance.js">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <Resource Include="Resources\splash.gif" />
+    <Resource Include="Resources\splash0.gif" />
+    <Resource Include="Resources\splash1.gif" />
+    <Resource Include="Resources\splash2.gif" />
+    <Resource Include="Resources\splash3.gif" />
+    <Resource Include="Resources\splash4.gif" />
+    <Resource Include="Resources\splash5.gif" />
+    <Resource Include="Resources\splash6.gif" />
+    <Resource Include="Resources\splash7.gif" />
+    <Resource Include="Resources\splash8.gif" />
+    <Resource Include="Resources\splash9.gif" />
     <Resource Include="Resources\refresh.png" />
     <EmbeddedResource Include="Properties\Resources.resx">
       <Generator>ResXFileCodeGenerator</Generator>

@@ -1,10 +1,9 @@
-﻿calander.showCal = function(selectDate) {
+﻿calander.showCal = function (selectDate) {
     var is5Row = (rows <= 5 ? true : false);
     if (typeof (selectDate) == "undefined") {
         selectDate = date = makeCal.setTimeZero(new Date());
     }
     selectDate = makeCal.setTimeZero(selectDate);
-    window.external.GetAttendance(selectDate.format("yyyy-MM-dd"));
     var cldCache = null; //月份为转换后的月
     var month = selectDate.getMonth() + 1;
     $("#month_num").text(month);
@@ -140,9 +139,10 @@
     //加载当月的数据
     //		loadMonthEvent(selectDate);
     changeStyle();
+    window.external.GetAttendance(selectDate.format("yyyy-MM-dd"));
 };
 
-calander.showCalendar = function(selectDate, attendance) {
+calander.showCalendar = function (selectDate, attendance) {
     var is5Row = (rows <= 5 ? true : false);
     if (typeof (selectDate) == "undefined") {
         selectDate = date = makeCal.setTimeZero(new Date());
@@ -216,8 +216,8 @@ calander.showCalendar = function(selectDate, attendance) {
 
                 var tmpmonth = calData[i][j].value.getMonth() + 1;
                 var tmpday = calData[i][j].value.getDate() - 1;
-                if (att != null && tmpmonth == month && att.length > tmpday) {
-                    if (att[tmpday].Attend != null && att[tmpday].Attend != "") {
+                if (att != null && tmpmonth === month && att.length > tmpday) {
+                    if (att[tmpday].Attend != null && att[tmpday].Attend !== "") {
                         aDay += "<div class='status attendance' style=\"width:" +
                             att[tmpday].Attend.length * 21 +
                             "px;\">" +
@@ -225,7 +225,7 @@ calander.showCalendar = function(selectDate, attendance) {
                             "</div>";
                     }
                     if (att[tmpday].Holiday != null) {
-                        if (att[tmpday].Holiday == true) {
+                        if (att[tmpday].Holiday === true) {
                             aDay += "<div class='status rest'>休</div>";
                         } else {
                             aDay += "<div class='status work'>班</div>";
@@ -310,7 +310,7 @@ function showCalendar(selectDate) {
 }
 
 function showAttendance(selectDate, attendance) {
-    if (currentDate.format("yyyyMM") == new Date(selectDate).format("yyyyMM")) {
+    if (currentDate.format("yyyyMM") === new Date(selectDate).format("yyyyMM")) {
         calander.showCalendar(getCurrentDate(), attendance);
     }
 }

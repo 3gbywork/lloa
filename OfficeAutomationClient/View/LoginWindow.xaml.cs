@@ -1,13 +1,12 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using CommonUtility.Extension;
+﻿using CommonUtility.Extension;
 using CommonUtility.Logging;
 using GalaSoft.MvvmLight.Messaging;
-using GalaSoft.MvvmLight.Threading;
 using OfficeAutomationClient.Helper;
 using OfficeAutomationClient.OA;
 using OfficeAutomationClient.ViewModel;
+using System;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace OfficeAutomationClient.View
 {
@@ -57,12 +56,9 @@ namespace OfficeAutomationClient.View
 
         private void GetPassword(string user)
         {
-            DispatcherHelper.CheckBeginInvokeOnUI(() =>
-            {
-                if (!string.IsNullOrEmpty(user))
-                    password.Password = Business.Instance.QueryPassword(user).CreateString();
-                else password.Password = string.Empty;
-            });
+            if (!string.IsNullOrEmpty(user))
+                password.Password = Business.Instance.QueryPassword(user).CreateString();
+            else password.Password = string.Empty;
         }
 
         protected override void OnClosed(EventArgs e)

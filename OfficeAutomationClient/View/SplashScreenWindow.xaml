@@ -6,11 +6,13 @@
         xmlns:local="clr-namespace:OfficeAutomationClient.View"
         mc:Ignorable="d"
         WindowStyle="None"
+        Background="Transparent"
+        AllowsTransparency="True"
         ResizeMode="NoResize"
         WindowStartupLocation="CenterScreen"
         SizeToContent="WidthAndHeight"
         SizeChanged="SplashScreenWindow_OnSizeChanged"
-        Title="SplashScreenWindow" d:DesignHeight="300" d:DesignWidth="300">
+        Title="加载中……" d:DesignHeight="300" d:DesignWidth="300">
     <Grid>
         <Image x:Name="SplashScreen" Stretch="None"/>
     </Grid>

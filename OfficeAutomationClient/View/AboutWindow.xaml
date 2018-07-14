@@ -9,5 +9,7 @@
                   WindowStartupLocation="CenterScreen"
                   DataContext="{Binding Source={StaticResource Locator}, Path=About}"
                   Title="{Binding Title}" Height="280" Width="420">
-    <Grid />
+    <Grid>
+        <TextBlock Text="{Binding Info}" TextWrapping="NoWrap" Margin="10"/>
+    </Grid>
 </local:WindowBase>

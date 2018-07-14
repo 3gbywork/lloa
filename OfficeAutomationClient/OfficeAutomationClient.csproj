@@ -173,6 +173,7 @@
     <Compile Include="Database\SQLiteConnectionFactory.cs" />
     <Compile Include="Extension\WebBrowserExtensions.cs" />
     <Compile Include="Helper\ConfigHelper.cs" />
+    <Compile Include="Helper\ConsoleTool.cs" />
     <Compile Include="Helper\JsFunction.cs" />
     <Compile Include="Helper\RegistryHelper.cs" />
     <Compile Include="Model\AttendanceInfo.cs" />

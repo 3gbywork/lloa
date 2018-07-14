@@ -43,7 +43,7 @@ namespace OfficeAutomationClient.OA
         private static readonly byte[] OptionalEntropy = Encoding.UTF8.GetBytes("3.141592653589793238462643383279");
         private static readonly ILogger Logger = LogHelper.GetLogger<Business>();
 
-        public static string AssemblyName = Assembly.GetExecutingAssembly().GetName().Name;
+        public static AssemblyName AssemblyName = Assembly.GetExecutingAssembly().GetName();
         private static HttpClient _httpClient;
 
         private static readonly CookieContainer CookieContainer = new CookieContainer();
@@ -60,7 +60,7 @@ namespace OfficeAutomationClient.OA
             var version = RegistryHelper.GetIEVersion();
             if (version != IEVersion.None)
             {
-                RegistryHelper.SetWebBrowserEmulation(AssemblyName + ".exe", version);
+                RegistryHelper.SetWebBrowserEmulation(AssemblyName.Name + ".exe", version);
             }
         }
 

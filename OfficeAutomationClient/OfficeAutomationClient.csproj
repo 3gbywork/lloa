@@ -204,6 +204,9 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="Helper\LogHelper.cs" />
+    <Compile Include="View\QueryControl.xaml.cs">
+      <DependentUpon>QueryControl.xaml</DependentUpon>
+    </Compile>
     <Compile Include="View\SplashScreenWindow.xaml.cs">
       <DependentUpon>SplashScreenWindow.xaml</DependentUpon>
     </Compile>
@@ -220,6 +223,9 @@
       <Generator>MSBuild:Compile</Generator>
     </Page>
     <Page Include="View\LoginWindow.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="View\QueryControl.xaml">
       <Generator>MSBuild:Compile</Generator>
     </Page>
     <Page Include="View\SplashScreenWindow.xaml">

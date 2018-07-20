@@ -20,13 +20,11 @@ namespace OfficeAutomationClient.ViewModel
             QueryOrganizationCommand = new RelayCommand(() =>
             {
                 logger.Info("查询 组织结构 信息……");
-                //var organizations = Business.Instance.GetOrganizations();
-                //var org = organizations.Where(o => o.Type == OrganizationType.Dept).First();
-
-                //var people = Business.Instance.GetPeople(org);
+                Content = ViewLocator.QueryControl;
             });
             QueryMonthAttDataCommand = new RelayCommand(() =>
             {
+                logger.Info("查询 月考勤 信息……");
                 Content = ViewLocator.AttendanceInfo;
             });
             AboutCommand = new RelayCommand(() =>

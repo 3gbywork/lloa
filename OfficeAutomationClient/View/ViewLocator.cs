@@ -14,6 +14,7 @@ namespace OfficeAutomationClient.View
 
             SimpleIoc.Default.Register<AboutWindow>();
             SimpleIoc.Default.Register<AttendanceInfoControl>();
+            SimpleIoc.Default.Register<QueryControl>();
         }
 
         public static LoginWindow LoginWindow => SimpleIoc.Default.GetInstanceWithoutCaching<LoginWindow>();
@@ -23,5 +24,6 @@ namespace OfficeAutomationClient.View
 
         public static AttendanceInfoControl AttendanceInfo =>
             SimpleIoc.Default.GetInstanceWithoutCaching<AttendanceInfoControl>();
+        public static QueryControl QueryControl => SimpleIoc.Default.GetInstanceWithoutCaching<QueryControl>();
     }
 }

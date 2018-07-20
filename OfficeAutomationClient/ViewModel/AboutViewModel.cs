@@ -23,7 +23,7 @@ namespace OfficeAutomationClient.ViewModel
             builder.AppendLine($"用户：{Environment.UserName}");
             builder.AppendLine($"计算机名：{Environment.MachineName}");
             builder.AppendLine(
-                $"操作系统：{new ConsoleTool { FileName = "cmd.exe", Arguments = "/c ver" }.RunAndGetOutput().Trim()}");
+                $"操作系统：{ConsoleTool.Create("cmd.exe", "/c ver").RunAndGetOutput().Trim()}");
             builder.AppendLine($"时区：{TimeZoneInfo.Local.DisplayName}");
             builder.AppendLine($"区域：{CultureInfo.CurrentCulture.DisplayName}");
 

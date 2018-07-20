@@ -665,6 +665,12 @@ namespace OfficeAutomationClient.OA
 
         #endregion
 
+        #region 验证CrashReporter账号
+
+        
+
+        #endregion
+
         public void WarmUp()
         {
             // 预热HttpClient

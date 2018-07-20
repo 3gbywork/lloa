@@ -7,6 +7,11 @@ namespace OfficeAutomationClient.Helper
 {
     internal class ConsoleTool
     {
+        public static ConsoleTool Create(string fileName, string arguments = null)
+        {
+            return new ConsoleTool() { FileName = fileName, Arguments = arguments };
+        }
+
         public int Run()
         {
             return Run(DefaultAction);

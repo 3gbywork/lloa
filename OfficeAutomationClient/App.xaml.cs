@@ -5,8 +5,12 @@ using OfficeAutomationClient.Helper;
 using OfficeAutomationClient.OA;
 using OfficeAutomationClient.View;
 using System;
+using System.IO;
+using System.Net.Mime;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
+using CommonUtility.Extension;
 using CommonUtility.Rand;
 
 namespace OfficeAutomationClient
@@ -46,8 +50,34 @@ namespace OfficeAutomationClient
 
             AppDomain.CurrentDomain.UnhandledException += (sender, arg) =>
             {
-                Logger.Error(arg.ExceptionObject as Exception, null, "程序异常终止");
+                var exception = arg.ExceptionObject as Exception;
+                Logger.Error(exception, null, "程序异常终止");
+
+                // 等待nlog将所有日志都写入文件
+                // 根据nlog的flushTimeout配置适当修改等待时间
+                //Thread.Sleep(500);
+
+
+                //crashReporter.Body = exception?.Message;
+                //crashReporter.IsBodyHtml = false;
+
+                //var dir = new DirectoryInfo($@"logs/{DateTimeOffset.Now:yyyy-MM-dd}");
+                //if (dir.Exists)
+                //{
+                //    foreach (var logFile in dir.GetFiles())
+                //    {
+                //        crashReporter.Attachments.Add(new Attachment()
+                //        {
+                //            FileName = logFile.FullName,
+                //            MediaType = MediaTypeNames.Text.Plain,
+                //        });
+                //    }
+                //}
+
+                //crashReporter.Send();
             };
+
+            throw new Exception("测试bug report");
 
             Messenger.Default.Register<string>(this, TMessageToken.ShowConfirmation, msg => { MessageBox.Show(msg, Business.Instance.Title, MessageBoxButton.OK, MessageBoxImage.Warning); });
 

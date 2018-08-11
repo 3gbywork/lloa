@@ -44,11 +44,13 @@ namespace OfficeAutomationClient.ViewModel
             SimpleIoc.Default.Register<LoginViewModel>();
             SimpleIoc.Default.Register<InfoViewModel>();
             SimpleIoc.Default.Register<AboutViewModel>();
+            SimpleIoc.Default.Register<EmailViewModel>();
         }
 
         public LoginViewModel Login => SimpleIoc.Default.GetInstanceWithoutCaching<LoginViewModel>();
         public InfoViewModel Info => ServiceLocator.Current.GetInstance<InfoViewModel>();
         public AboutViewModel About => ServiceLocator.Current.GetInstance<AboutViewModel>();
+        public EmailViewModel Email => ServiceLocator.Current.GetInstance<EmailViewModel>();
 
         public static void Cleanup()
         {

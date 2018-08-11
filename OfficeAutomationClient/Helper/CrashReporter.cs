@@ -175,13 +175,15 @@ namespace OfficeAutomationClient.Helper
             return reporter;
         }
 
-        private static int GetSmtpServerPort(bool enableSsl)
+        public static int GetSmtpServerPort(bool enableSsl)
         {
             return enableSsl ? 465 /* 587/994 */ : 25;
         }
 
-        private static string GetSmtpServerHost(string email)
+        public static string GetSmtpServerHost(string email)
         {
+            if (string.IsNullOrEmpty(email)) return string.Empty;
+
             var index = email.IndexOf('@');
             if (index > 0 && email.Length > index + 1)
             {

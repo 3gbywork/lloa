@@ -78,4 +78,23 @@ namespace OfficeAutomationClient.Helper
 
         public string FileName { get; set; }
     }
+
+    internal class ConsoleAttacher
+    {
+        private const int ATTACH_PARENT_PROCESS = -1;
+
+        public static void AttachParentConsole()
+        {
+            AttachConsole(ATTACH_PARENT_PROCESS);
+        }
+
+        [DllImport("Kernel32.dll", EntryPoint = "AttachConsole", CharSet = CharSet.Unicode, SetLastError = true)]
+        public static extern void AttachConsole(int dwProcessId);
+
+        [DllImport("Kernel32.dll", EntryPoint = "AllocConsole", CharSet = CharSet.Unicode, SetLastError = true)]
+        public static extern void AllocConsole();
+
+        [DllImport("Kernel32.dll", EntryPoint = "FreeConsole", CharSet = CharSet.Unicode, SetLastError = true)]
+        public static extern void FreeConsole();
+    }
 }

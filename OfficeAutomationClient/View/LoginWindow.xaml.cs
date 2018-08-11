@@ -39,7 +39,7 @@ namespace OfficeAutomationClient.View
                 }
             };
 
-            Messenger.Default.Register<string>(this, TMessageToken.UserChanged, user =>
+            Messenger.Default.Register<string>(this, TMessengerToken.LoginUserChanged, user =>
             {
                 if (IsLoaded)
                 {
@@ -56,16 +56,14 @@ namespace OfficeAutomationClient.View
 
         private void GetPassword(string user)
         {
-            if (!string.IsNullOrEmpty(user))
-                password.Password = Business.Instance.QueryPassword(user).CreateString();
-            else password.Password = string.Empty;
+            password.Password = Business.Instance.QueryPassword(user).CreateString();
         }
 
         protected override void OnClosed(EventArgs e)
         {
             base.OnClosed(e);
 
-            Messenger.Default.Unregister<string>(this, TMessageToken.UserChanged);
+            Messenger.Default.Unregister<string>(this, TMessengerToken.LoginUserChanged);
         }
     }
 }

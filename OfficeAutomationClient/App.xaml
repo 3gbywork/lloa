@@ -4,11 +4,15 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              d1p1:Ignorable="d"
              xmlns:d1p1="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:cvt="clr-namespace:OfficeAutomationClient.Converter"
              ShutdownMode="OnExplicitShutdown">
     <Application.Resources>
         <ResourceDictionary>
             <vm:ViewModelLocator x:Key="Locator" d:IsDataSource="True"
                                  xmlns:vm="clr-namespace:OfficeAutomationClient.ViewModel" />
+
+            <cvt:BoolDoubleConverter x:Key="BoolDoubleConverter"/>
+            <cvt:NullableBoolVisibleConverter x:Key="NullableBoolVisibleConverter"/>
         </ResourceDictionary>
     </Application.Resources>
 </Application>

@@ -7,6 +7,8 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
+using System.Net.Mime;
+using System.Net.Sockets;
 using System.Reflection;
 using System.Runtime.Caching;
 using System.Security;
@@ -24,6 +26,9 @@ using CommonUtility.Logging;
 using CommonUtility.Rand;
 using CredentialManagement;
 using HtmlAgilityPack;
+using ICSharpCode.SharpZipLib.Zip;
+using MailKit.Net.Smtp;
+using MailKit.Security;
 using Newtonsoft.Json;
 using OfficeAutomationClient.Database;
 using OfficeAutomationClient.Helper;
@@ -39,7 +44,9 @@ namespace OfficeAutomationClient.OA
         private const string DefaultTitle = "OA";
         private const string DefaultCompany = "办公自动化系统";
         private const string CredentialSetTarget = "OfficeAutomationClient";
+        private const string BugReporter = "Bug Reporter";
         private const string DbFileName = "organization.db";
+        private const string RsaPublicKey = "MIIBIDANBgkqhkiG9w0BAQEFAAOCAQ0AMIIBCAKCAQEAk74T5uR8KEz/pyx4N8xa2l+cmL0pftBkkgOotcprvgOzZf3joBOv+0Tk7wa+/g0b6SJTGUm5Z79XHM1smYeeqO4Q6jgPg39JEYJ8TLZvGD0hPxHAfhjjqQg4eHXmN4l+DIxt5Et/5N537fS8CgvgxHT1YbfJgXu5L1sRmPW2bjagPciRsd9vxQNOdQZGtZzFYA/Dv9t4RXy6rY9PlQ1ImYC3biv61BEbaUXshvACXrenuMX/MMdv+IjxiPvB7M7LVBhxrfaVeI0+P7EOGeGhSBzMKIm8G/BTElgZ9wgbvZ8Jl8S/4Tf5nafTcGcJFUT+8H+FivusM3ZjReC554laTwIBAw==";
         private static readonly byte[] OptionalEntropy = Encoding.UTF8.GetBytes("3.141592653589793238462643383279");
         private static readonly ILogger Logger = LogHelper.GetLogger<Business>();
 
@@ -81,6 +88,11 @@ namespace OfficeAutomationClient.OA
 
         private void SaveOrUpdateCredential(string user, SecureString password)
         {
+            SaveOrUpdateCredential(user, Encoding.UTF8.GetBytes(password.CreateString()));
+        }
+
+        private void SaveOrUpdateCredential(string user, byte[] userData)
+        {
             var credential = _credentials.Find(c => string.Equals(c.Username, user)) ?? new Credential(user)
             {
                 PersistanceType = PersistanceType.LocalComputer,
@@ -88,35 +100,41 @@ namespace OfficeAutomationClient.OA
                 Target = $"{CredentialSetTarget}:{Guid.NewGuid()}"
             };
             credential.Password = ProtectedData
-                .Protect(Encoding.UTF8.GetBytes(password.CreateString()), OptionalEntropy, DataProtectionScope.CurrentUser)
+                .Protect(userData, OptionalEntropy, DataProtectionScope.CurrentUser)
                 .ToBase64String();
             credential.Save();
             _credentials.Load();
         }
 
-        internal List<string> GetUsers()
+        internal List<string> GetLoginUsers()
         {
-            return _credentials.Where(c => c.Target.StartsWith(CredentialSetTarget)).Select(c => c.Username).ToList();
+            return _credentials.Where(c => c.Target.StartsWith(CredentialSetTarget) && !c.Username.Equals(BugReporter)).Select(c => c.Username).ToList();
         }
 
         internal SecureString QueryPassword(string username)
         {
+            return QueryUserData(username).ToString(Encoding.UTF8).CreateSecureString();
+        }
+
+        internal byte[] QueryUserData(string username)
+        {
+            var result = new byte[0];
+            if (string.IsNullOrEmpty(username)) return result;
+
             var user = _credentials.Find(c => c.Target.StartsWith(CredentialSetTarget) && c.Username.Equals(username));
             if (null != user)
             {
                 try
                 {
-                    return ProtectedData
-                        .Unprotect(user.SecurePassword.CreateString().FromBase64String(), OptionalEntropy,
-                            DataProtectionScope.CurrentUser).ToString(Encoding.UTF8).CreateSecureString();
+                    return ProtectedData.Unprotect(user.SecurePassword.CreateString().FromBase64String(), OptionalEntropy, DataProtectionScope.CurrentUser);
                 }
                 catch (Exception ex)
                 {
-                    Logger.Error(ex, null, "解析 {0} 的密码失败", username);
+                    Logger.Error(ex, null, "解析 {0} 保存的数据失败", username);
                 }
             }
 
-            return new SecureString();
+            return result;
         }
 
         #endregion
@@ -667,7 +685,121 @@ namespace OfficeAutomationClient.OA
 
         #region 验证CrashReporter账号
 
-        
+        internal async Task<EmailValidationResult> CheckEmailValid(EmailViewModel email, SecureString password)
+        {
+            var result = EmailValidationResult.Failed;
+            var client = new SmtpClient();
+            try
+            {
+                await client.ConnectAsync(email.IP, int.Parse(email.Port), email.EnableSsl);
+                await client.AuthenticateAsync(email.User, password.CreateString());
+                await client.DisconnectAsync(true);
+
+                result = EmailValidationResult.OK;
+
+                var emailInfo = new EmailInfo
+                {
+                    User = email.User,
+                    Password = Encoding.UTF8.GetBytes(password.CreateString()),
+                    Host = email.IP,
+                    Port = email.Port,
+                    EnableSsl = email.EnableSsl
+                };
+                var serializeString = JsonConvert.SerializeObject(emailInfo);
+                SaveOrUpdateCredential(BugReporter, Encoding.UTF8.GetBytes(serializeString));
+            }
+            catch (Exception ex)
+            {
+                if (ex is SocketException)
+                    result = EmailValidationResult.ConnectionError;
+                else if (ex is SmtpProtocolException)
+                    result = EmailValidationResult.ProtocolError;
+                else if (ex is AuthenticationException)
+                    result = EmailValidationResult.AuthenticationFailed;
+                Logger.Error(ex, null, "验证Crash Reporter账号异常, {0}:{1} ssl:{2} user:{3}", email.IP, email.Port, email.EnableSsl, email.User);
+            }
+            finally
+            {
+                client.Dispose();
+            }
+
+            return result;
+        }
+
+        internal string GetSmtpServerHost(string email)
+        {
+            return CrashReporter.GetSmtpServerHost(email);
+        }
+
+        internal int GetSmtpServerPort(bool enableSsl)
+        {
+            return CrashReporter.GetSmtpServerPort(enableSsl);
+        }
+
+        internal EmailInfo GetEmailInfo()
+        {
+            var infoString = QueryUserData(BugReporter).ToString(Encoding.UTF8);
+            if (!string.IsNullOrEmpty(infoString))
+                return JsonConvert.DeserializeObject<EmailInfo>(infoString);
+            return null;
+        }
+
+        internal void SendCrashReport(string body, string attachmentPath)
+        {
+            try
+            {
+                var email = GetEmailInfo();
+                if (null != email)
+                {
+                    var zipPwd = RandomEx.NextString(100).CreateSecureString();
+                    var crashReporter = CrashReporter.CreateSimpleCrashReporter(email.User, email.EnableSsl);
+                    crashReporter.Password = Encoding.UTF8.GetString(email.Password).CreateSecureString();
+                    crashReporter.Body = $@"{body}
+
+=====================================================================================================================
+
+{CryptoHelper.RsaEncrypt(Encoding.UTF8.GetBytes(zipPwd.CreateString()), CryptoHelper.GetAsymmetricKeyParameter(RsaPublicKey, false)).ToBase64String()}";
+                    crashReporter.IsBodyHtml = false;
+
+                    var zipFile = ZipFile.Create(Path.Combine(Path.GetTempPath(), $"report-{Guid.NewGuid().ToString("N")}.zip"));
+                    try
+                    {
+                        zipFile.Password = zipPwd.CreateString();
+                        zipFile.BeginUpdate();
+
+                        var systemInfo = Path.GetTempFileName();
+                        File.WriteAllText(systemInfo, ConsoleTool.Create("cmd.exe", "/c systeminfo").RunAndGetOutput());
+                        zipFile.Add(systemInfo, "systeminfo.txt");
+
+                        var dir = new DirectoryInfo(attachmentPath);
+                        if (dir.Exists)
+                        {
+                            foreach (var logFile in dir.GetFiles())
+                            {
+                                zipFile.Add(logFile.FullName, logFile.Name);
+                            }
+                        }
+                        zipFile.CommitUpdate();
+                    }
+                    finally
+                    {
+                        zipFile.Close();
+                    }
+
+                    crashReporter.Attachments.Add(new Attachment()
+                    {
+                        FileName = zipFile.Name,
+                        MediaType = MediaTypeNames.Text.Plain,
+                    });
+
+                    crashReporter.Send();
+                }
+            }
+            catch (Exception)
+            {
+
+            }
+        }
 
         #endregion
 

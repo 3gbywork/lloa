@@ -96,7 +96,7 @@ namespace OfficeAutomationClient.Helper
 
         #endregion
 
-        #region RSA密钥生成/转换
+        #region RSA密钥生成/转换/加密/解密
 
         /// <summary>
         ///     生成RSA密钥对

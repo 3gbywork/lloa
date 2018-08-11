@@ -28,7 +28,7 @@ namespace OfficeAutomationClient.ViewModel
         public LoginViewModel()
         {
             Logger.Info("初始化登陆信息……");
-            Users = Business.Instance.GetUsers();
+            Users = Business.Instance.GetLoginUsers();
             User = ConfigHelper.Get<string>(ConfigKey.User);
             RememberPwd = ConfigHelper.Get<bool>(ConfigKey.RememberPwd);
             AutoLogin = ConfigHelper.Get<bool>(ConfigKey.AutoLogin);
@@ -42,7 +42,7 @@ namespace OfficeAutomationClient.ViewModel
             {
                 if (string.IsNullOrEmpty(User) || p.SecurePassword.Length == 0)
                 {
-                    Messenger.Default.Send("用户名或密码不能为空", TMessageToken.ShowConfirmation);
+                    Messenger.Default.Send("用户名或密码不能为空", TMessengerToken.ShowConfirmation);
                     return;
                 }
 
@@ -51,7 +51,7 @@ namespace OfficeAutomationClient.ViewModel
                        .WaitAndRetryAsync(10, i => TimeSpan.FromMilliseconds(500)).ExecuteAsync(() => TaskEx.FromResult(ValidateCode));
                 if (null == ValidateCode || ValidateCode.Length != 4)
                 {
-                    Messenger.Default.Send("验证码不正确", TMessageToken.ShowConfirmation);
+                    Messenger.Default.Send("验证码不正确", TMessengerToken.ShowConfirmation);
                     return;
                 }
 
@@ -82,7 +82,7 @@ namespace OfficeAutomationClient.ViewModel
             set
             {
                 Set(ref _user, value);
-                Messenger.Default.Send(value, TMessageToken.UserChanged);
+                Messenger.Default.Send(value, TMessengerToken.LoginUserChanged);
             }
         }
 

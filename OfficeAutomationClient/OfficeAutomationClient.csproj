@@ -184,6 +184,8 @@
     <Compile Include="Database\SQLiteConfiguration.cs" />
     <Compile Include="Database\SQLiteConnectionFactory.cs" />
     <Compile Include="Extension\WebBrowserExtensions.cs" />
+    <Compile Include="Converter\BoolDoubleConverter.cs" />
+    <Compile Include="Converter\NullableBoolVisibleConverter.cs" />
     <Compile Include="Helper\ConfigHelper.cs" />
     <Compile Include="Helper\ConsoleTool.cs" />
     <Compile Include="Helper\CrashReporter.cs" />
@@ -191,12 +193,14 @@
     <Compile Include="Helper\JsFunction.cs" />
     <Compile Include="Helper\RegistryHelper.cs" />
     <Compile Include="Model\AttendanceInfo.cs" />
+    <Compile Include="Model\EmailInfo.cs" />
     <Compile Include="Model\Organization.cs" />
     <Compile Include="Model\Person.cs" />
     <Compile Include="Model\PersonalDetail.cs" />
     <Compile Include="OA\Business.cs" />
-    <Compile Include="OA\TMessageToken.cs" />
+    <Compile Include="OA\Enumeration.cs" />
     <Compile Include="ViewModel\AboutViewModel.cs" />
+    <Compile Include="ViewModel\EmailViewModel.cs" />
     <Compile Include="ViewModel\InfoViewModel.cs" />
     <Compile Include="ViewModel\LoginViewModel.cs" />
     <Compile Include="ViewModel\ViewModelBase.cs" />
@@ -206,6 +210,9 @@
     </Compile>
     <Compile Include="View\AttendanceInfoControl.xaml.cs">
       <DependentUpon>AttendanceInfoControl.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="View\EmailWindow.xaml.cs">
+      <DependentUpon>EmailWindow.xaml</DependentUpon>
     </Compile>
     <Compile Include="View\InfoWindow.xaml.cs">
       <DependentUpon>InfoWindow.xaml</DependentUpon>
@@ -226,10 +233,16 @@
     </Compile>
     <Compile Include="View\ViewLocator.cs" />
     <Compile Include="View\WindowBase.cs" />
+    <Page Include="Resources\Style.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
     <Page Include="View\AboutWindow.xaml">
       <Generator>MSBuild:Compile</Generator>
     </Page>
     <Page Include="View\AttendanceInfoControl.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="View\EmailWindow.xaml">
       <Generator>MSBuild:Compile</Generator>
     </Page>
     <Page Include="View\InfoWindow.xaml">

@@ -12,39 +12,11 @@
                   Title="{Binding Title}" Height="220" Width="350">
     <Grid>
         <Grid.Resources>
-            <Style TargetType="{x:Type Label}">
-                <Setter Property="Margin" Value="5" />
-            </Style>
-            <Style TargetType="{x:Type ComboBox}">
-                <Setter Property="Margin" Value="5 3" />
-            </Style>
-            <Style TargetType="{x:Type PasswordBox}">
-                <Setter Property="Margin" Value="5 3" />
-            </Style>
-            <Style TargetType="{x:Type TextBox}">
-                <Setter Property="Margin" Value="5 3" />
-            </Style>
-            <Style TargetType="{x:Type Image}">
-                <Setter Property="Margin" Value="5 3" />
-            </Style>
-            <Style TargetType="{x:Type Button}">
-                <Setter Property="Margin" Value="5" />
-                <Setter Property="FontSize" Value="16" />
-            </Style>
-            <Style TargetType="{x:Type StackPanel}">
-                <Setter Property="Margin" Value="5" />
-            </Style>
-            <Style TargetType="{x:Type Separator}">
-                <Setter Property="VerticalAlignment" Value="Bottom" />
-                <Setter Property="Background">
-                    <Setter.Value>
-                        <SolidColorBrush Color="Black" Opacity="0.1" />
-                    </Setter.Value>
-                </Setter>
-            </Style>
-            <Style TargetType="{x:Type CheckBox}">
-                <Setter Property="Margin" Value="10 0" />
-            </Style>
+            <ResourceDictionary>
+                <ResourceDictionary.MergedDictionaries>
+                    <ResourceDictionary Source="/resources/style.xaml"/>
+                </ResourceDictionary.MergedDictionaries>
+            </ResourceDictionary>
         </Grid.Resources>
 
         <Grid.RowDefinitions>

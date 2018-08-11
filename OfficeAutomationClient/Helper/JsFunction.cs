@@ -22,7 +22,7 @@ namespace OfficeAutomationClient.Helper
 
             if (string.IsNullOrEmpty(attendance))
             {
-                Messenger.Default.Send("获取考勤数据失败", TMessageToken.ShowConfirmation);
+                Messenger.Default.Send("获取考勤数据失败", TMessengerToken.ShowConfirmation);
             }
             else
             {

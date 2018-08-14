@@ -1,0 +1,22 @@
+﻿// What you are about to enter is what is called a Distinguished Name or a DN.
+// There are quite a few fields but you can leave some blank
+// country code - StringType(SIZE(2))	[CN]
+C =
+
+// state, or province name - StringType(SIZE(1..64))
+ST =
+
+// locality name - StringType(SIZE(1..64))
+L =
+
+// organization - StringType(SIZE(1..64))
+O =
+
+// organizational unit name - StringType(SIZE(1..64))
+OU =
+
+// common name - StringType(SIZE(1..64))
+CN =
+
+// email address in Verisign certificates
+E =

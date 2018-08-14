@@ -6,7 +6,6 @@ using OfficeAutomationClient.Helper;
 using OfficeAutomationClient.OA;
 using OfficeAutomationClient.View;
 using System;
-using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
@@ -22,42 +21,6 @@ namespace OfficeAutomationClient
 
         protected override async void OnStartup(StartupEventArgs e)
         {
-#if GENERATE_RSA_KEYPAIR
-            if (e.Args.Length == 2)
-            {
-                if (int.TryParse(e.Args[0], out int bits) && !string.IsNullOrWhiteSpace(e.Args[1]))
-                {
-                    ConsoleAttacher.AllocConsole();
-
-                    try
-                    {
-                        Console.WriteLine("生成{0}位RSA密钥对到目录{1}......", e.Args[0], e.Args[1]);
-                        var pair = CryptoHelper.GenerateRsaKeyPair(bits);
-
-                        if (!Directory.Exists(e.Args[1])) Directory.CreateDirectory(e.Args[1]);
-
-                        var privateKeyFile = Path.Combine(e.Args[1], "private.key");
-                        Console.WriteLine("生成私钥文件:{0}", privateKeyFile);
-                        File.WriteAllText(privateKeyFile, CryptoHelper.GetRsaDerEncodedBase64String(pair.Private));
-
-                        var publicKeyFile = Path.Combine(e.Args[1], "public.key");
-                        Console.WriteLine("生成公钥文件:{0}", publicKeyFile);
-                        File.WriteAllText(publicKeyFile, CryptoHelper.GetRsaDerEncodedBase64String(pair.Public));
-
-                        Console.WriteLine("密钥成功生成");
-                    }
-                    catch (Exception ex)
-                    {
-                        Console.WriteLine("生成RSA密钥对失败,参数:{0},{1},异常:{2}", e.Args[0], e.Args[1], ex);
-                    }
-
-                    Console.Write("按回车键退出");
-                    Console.ReadLine();
-
-                    Current.Shutdown();
-                }
-            }
-#endif 
             Messenger.Default.Register<string>(this, TMessengerToken.ShowConfirmation, msg => { MessageBox.Show(msg, Business.Instance.Title, MessageBoxButton.OK, MessageBoxImage.Warning); });
 
             var splash = new SplashScreenWindow($"../Resources/splash{RandomEx.Next(maxValue: 10)}.gif");

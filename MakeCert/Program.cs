@@ -20,27 +20,30 @@ namespace MakeCert
             {
                 if (option.Algorithm.Name == AlgorithmName.RSA)
                 {
-                    var pair = GeneratorHelper.GenerateRsaKeyPair(option.Algorithm.KeySize);
+                    var pair = BouncyCastleHelper.GenerateRsaKeyPair(option.Algorithm.KeySize);
                     var privKey = pair.Private;
                     var pubKey = pair.Public;
 
                     X509Certificate certificate = null;
                     if (new List<string> { option.OutCrtPath, option.OutPfxPath }.Any(p => !string.IsNullOrEmpty(p)))
-                        certificate = GeneratorHelper.GenerateX509Certificate(privKey, pubKey, option.DistinguishedNames, DateTime.UtcNow, option.Days);
+                        certificate = BouncyCastleHelper.GenerateX509Certificate(privKey, pubKey, option.DistinguishedNames, DateTime.UtcNow, option.Days);
 
                     if (!string.IsNullOrEmpty(option.OutPrivateKeyPath))
-                        PemWriterHelper.WriteObject(option.OutPrivateKeyPath, privKey);
+                        BouncyCastleHelper.WriteObject(option.OutPrivateKeyPath, privKey);
                     if (!string.IsNullOrEmpty(option.OutPublicKeyPath))
-                        PemWriterHelper.WriteObject(option.OutPublicKeyPath, pubKey);
+                        BouncyCastleHelper.WriteObject(option.OutPublicKeyPath, pubKey);
                     if (!string.IsNullOrEmpty(option.OutCrtPath))
-                        PemWriterHelper.WriteObject(option.OutCrtPath, certificate);
+                        BouncyCastleHelper.WriteObject(option.OutCrtPath, certificate);
                     if (!string.IsNullOrEmpty(option.OutPfxPath))
-                        GeneratorHelper.SavePfx(option.OutPfxPath, certificate, privKey, option.Password);
+                        BouncyCastleHelper.SavePfx(option.OutPfxPath, certificate, privKey, option.Password);
                 }
             }
             else if (option.Verb == CmdVerb.Export)
             {
-                GeneratorHelper.ExportPfx(option.InPfxPath, option.Password, option.OutPrivateKeyPath, option.OutPublicKeyPath, option.OutCrtPath);
+                if (!string.IsNullOrEmpty(option.InPfxPath))
+                    BouncyCastleHelper.ExportPfx(option.InPfxPath, option.Password, option.OutPrivateKeyPath, option.OutPublicKeyPath, option.OutCrtPath);
+                else if (!string.IsNullOrEmpty(option.InCrtPath))
+                    BouncyCastleHelper.ExportCrt(option.InCrtPath, option.OutPublicKeyPath);
             }
         }
     }

@@ -40,21 +40,31 @@ namespace MakeCert
             }
             else if ("export".Equals(verb))
             {
-                string pfxPath = null;
-                if (args.Length == 1 || (args.Length > 1 && string.IsNullOrWhiteSpace((pfxPath = args[1].Trim()))))
+                string certPath = null;
+                if (args.Length == 1 || (args.Length > 1 && string.IsNullOrWhiteSpace((certPath = args[1].Trim()))))
                 {
-                    PrintLine("{0} parameter is required", "pfx-file");
+                    PrintLine("{0} parameter is required", "certificate");
                     option.Verb = CmdVerb.ParseError;
                     return option;
                 }
-                if (!File.Exists(pfxPath))
+                if (!File.Exists(certPath))
                 {
-                    PrintLine("pfx file:{0} not found", pfxPath);
+                    PrintLine("certificate file:{0} not found", certPath);
+                    option.Verb = CmdVerb.ParseError;
+                    return option;
+                }
+                var ext = Path.GetExtension(certPath).ToLower();
+                if (".pfx".Equals(ext))
+                    option.InPfxPath = certPath;
+                else if (".crt".Equals(ext))
+                    option.InCrtPath = certPath;
+                else
+                {
+                    PrintLine("certificate file:{0} is not supported, only support the extension .crt and .pfx", certPath);
                     option.Verb = CmdVerb.ParseError;
                     return option;
                 }
 
-                option.InPfxPath = pfxPath;
                 option.Verb = CmdVerb.Export;
                 options = ExportOptions;
                 parameters = args.Skip(2).ToArray();
@@ -210,9 +220,9 @@ where options are
   -outpfx       personal information exchange file - DER format                 (default:[certificate.pfx])
 if -out* is not specified, -outpfx is default option
 
-{CmdName} export pfx-file [options]
+{CmdName} export certificate [options]
 where options are
-  pfx-file      personal information exchange file - DER format
+  certificate   certificate file, crt or pfx format
   -password     password for pfx
   -basedir      output base dir
   -outprivkey   output private key file - PEM format                            (default:[private.key])
@@ -238,6 +248,7 @@ if -out* is not specified, all -out* options will take effect";
 
         #region Input Path
         public string InPfxPath { get; set; }
+        public string InCrtPath { get; set; }
         #endregion
 
         public Algorithm Algorithm { get; set; }

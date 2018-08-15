@@ -4,6 +4,7 @@ using Org.BouncyCastle.Crypto.Generators;
 using Org.BouncyCastle.Crypto.Operators;
 using Org.BouncyCastle.Crypto.Parameters;
 using Org.BouncyCastle.Math;
+using Org.BouncyCastle.OpenSsl;
 using Org.BouncyCastle.Pkcs;
 using Org.BouncyCastle.Security;
 using Org.BouncyCastle.Utilities;
@@ -14,9 +15,9 @@ using System.Linq;
 
 namespace MakeCert
 {
-    class GeneratorHelper
+    class BouncyCastleHelper
     {
-        private const string PfxAliasName = "Pfx's Primary Certificate";
+        private const string PfxAliasName = "BadHex Root Certificate Authority";
 
         public static SecureRandom SecureRandom = SecureRandom.GetInstance("SHA256PRNG");
 
@@ -28,7 +29,7 @@ namespace MakeCert
             var generator = new RsaKeyPairGenerator();
             generator.Init(new RsaKeyGenerationParameters(
                 BigInteger.Three, //  BigInteger.ValueOf(65537),
-                SecureRandom.GetInstance("SHA256PRNG"),
+                SecureRandom,
                 bits,
                 128
             ));
@@ -50,7 +51,7 @@ namespace MakeCert
 
             generator.SetPublicKey(publicKey);
 
-            return generator.Generate(new Asn1SignatureFactory("SHA512WITHRSA", privateKey, SecureRandom));
+            return generator.Generate(new Asn1SignatureFactory("SHA256WITHRSA", privateKey, SecureRandom));
         }
 
         public static void SavePfx(string path, X509Certificate certificate, AsymmetricKeyParameter privateKey, char[] password)
@@ -61,12 +62,16 @@ namespace MakeCert
             pkcs12Store.SetCertificateEntry(PfxAliasName, certificateEntry);
             pkcs12Store.SetKeyEntry(PfxAliasName, new AsymmetricKeyEntry(privateKey), new X509CertificateEntry[] { certificateEntry });
 
+            CreateDirIfNotExists(path);
+
             using (var fs = File.Create(path))
                 pkcs12Store.Save(fs, password, SecureRandom);
         }
 
         public static void ExportPfx(string path, char[] password, string privKeyPath, string pubKeyPath, string certificatePath)
         {
+            if (string.IsNullOrEmpty(path) || !File.Exists(path)) return;
+
             var pkcs12Store = new Pkcs12StoreBuilder().Build();
 
             using (var fs = File.OpenRead(path))
@@ -77,17 +82,49 @@ namespace MakeCert
             var certificateEntry = pkcs12Store.GetCertificate(alias);
             var keyEntry = pkcs12Store.GetKey(alias);
 
-            if (null != keyEntry && null != keyEntry.Key && !string.IsNullOrEmpty(privKeyPath))
-                PemWriterHelper.WriteObject(privKeyPath, keyEntry.Key);
+            if (null != keyEntry)
+                WriteObject(privKeyPath, keyEntry.Key);
             if (null != certificateEntry && null != certificateEntry.Certificate)
             {
-                if (!string.IsNullOrEmpty(certificatePath))
-                    PemWriterHelper.WriteObject(certificatePath, certificateEntry.Certificate);
+                WriteObject(certificatePath, certificateEntry.Certificate);
 
                 var pubKey = certificateEntry.Certificate.GetPublicKey();
-                if (null != pubKey && !string.IsNullOrEmpty(pubKeyPath))
-                    PemWriterHelper.WriteObject(pubKeyPath, pubKey);
+                WriteObject(pubKeyPath, pubKey);
             }
+        }
+
+        public static void ExportCrt(string path, string pubKeyPath)
+        {
+            if (string.IsNullOrEmpty(path) || !File.Exists(path)) return;
+
+            using (var fs = File.OpenRead(path))
+            {
+                var parser = new X509CertificateParser();
+                var certificate = parser.ReadCertificate(fs);
+
+                var pubKey = certificate.GetPublicKey();
+                WriteObject(pubKeyPath, pubKey);
+            }
+        }
+
+        public static void WriteObject(string path, object obj)
+        {
+            if (string.IsNullOrEmpty(path) || null == obj) return;
+
+            CreateDirIfNotExists(path);
+
+            using (var sw = new StreamWriter(path))
+            {
+                var pemWriter = new PemWriter(sw);
+                pemWriter.WriteObject(obj);
+            }
+        }
+
+        private static void CreateDirIfNotExists(string path)
+        {
+            var dir = Path.GetDirectoryName(path);
+            if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir))
+                Directory.CreateDirectory(dir);
         }
     }
 }
